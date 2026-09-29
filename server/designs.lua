@@ -74,9 +74,10 @@ function Designs.listFor(cid)
     local projects = MySQL.query.await(
         'SELECT id, name, model, thumb, UNIX_TIMESTAMP(updated_at) AS updated FROM loe_vd_projects WHERE citizenid = ? ORDER BY updated_at DESC LIMIT 40',
         { cid }) or {}
+    -- Basilanlar: studyo sadece yetkililere acik oldugu icin ekip tum tasarimlari gorur/yonetir
     local printed = MySQL.query.await(
-        'SELECT id, label, model, thumb, UNIX_TIMESTAMP(created_at) AS created FROM loe_vd_designs WHERE citizenid = ? ORDER BY created_at DESC LIMIT 40',
-        { cid }) or {}
+        'SELECT id, label, model, thumb, designer, price, published, sales, UNIX_TIMESTAMP(created_at) AS created FROM loe_vd_designs ORDER BY created_at DESC LIMIT 120') or {}
+    for _, r in ipairs(printed) do r.published = r.published == true or r.published == 1 end
     return { projects = projects, printed = printed }
 end
 
@@ -140,6 +141,14 @@ local function itemMetadata(design, vehicleLabel, designer, thumb)
     return meta
 end
 
+local function clampPrice(p)
+    p = math.floor(tonumber(p) or 0)
+    if p < 0 then p = 0 end
+    if p > 100000000 then p = 100000000 end
+    return p
+end
+Designs.clampPrice = clampPrice
+
 local function giveItem(src, meta)
     local item = Config.Items.livery
     if not exports.ox_inventory:CanCarryItem(src, item, 1, meta) then
@@ -154,6 +163,13 @@ local function vehicleLabel(model)
     local def = Config.Vehicles[model]
     if not def then return model end
     return def.brand and (def.brand .. ' ' .. def.label) or def.label
+end
+Designs.vehicleLabel = vehicleLabel
+
+--- Tasarim icin kaplama esyasi ver (magaza 'item' modu, tekrar bas).
+function Designs.giveDesignItem(src, row)
+    local thumb = Config.Print.itemThumbnail and row.thumb or nil
+    return giveItem(src, itemMetadata(row, vehicleLabel(row.model), row.designer or '?', thumb))
 end
 
 function Designs.print(src, cid, data)
@@ -172,8 +188,11 @@ function Designs.print(src, cid, data)
     local design = { model = data.model, label = label }
     local vLabel = vehicleLabel(data.model)
     local thumb = validThumb(itemThumb) and itemThumb or nil
+    local publish = data.publish == true
+    local shopPrice = clampPrice(data.shopPrice)
+    local wantItem = data.giveItem ~= false or not publish -- magazaya eklemiyorsa her zaman esya verilir
     -- once yer kontrolu (para cekmeden)
-    if not exports.ox_inventory:CanCarryItem(src, Config.Items.livery, 1) then
+    if wantItem and not exports.ox_inventory:CanCarryItem(src, Config.Items.livery, 1) then
         return { ok = false, error = 'Envanterinde yer yok' }
     end
     local price = Config.Print.price or 0
@@ -186,21 +205,27 @@ function Designs.print(src, cid, data)
         return { ok = false, error = 'Kod üretilemedi' }
     end
     local paint = sanitizePaint(data.paint)
-    MySQL.insert.await('INSERT INTO loe_vd_designs (id, citizenid, designer, model, label, image, thumb, paint) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', {
+    MySQL.insert.await('INSERT INTO loe_vd_designs (id, citizenid, designer, model, label, image, thumb, paint, published, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
         design.id, cid, designer, data.model, label, image, validThumb(preview) and preview or nil, paint and json.encode(paint) or nil,
+        publish and 1 or 0, shopPrice,
     })
     cachePut(design.id, { id = design.id, model = data.model, image = image, paint = paint, label = label, citizenid = cid })
-    local ok, err = giveItem(src, itemMetadata(design, vLabel, designer, thumb))
-    if not ok then
-        Bridge.addMoney(src, price, 'loe-livery-refund')
-        return { ok = false, error = err }
+    if wantItem then
+        local ok, err = giveItem(src, itemMetadata(design, vLabel, designer, thumb))
+        if not ok then
+            Bridge.addMoney(src, price, 'loe-livery-refund')
+            return { ok = false, error = err }
+        end
     end
-    Designs.log(src, ('**%s** "%s" kaplamasını bastı (%s, #%s)'):format(designer, label, vLabel, design.id))
-    return { ok = true, id = design.id, message = ('"%s" basıldı — envanterine eklendi'):format(label) }
+    Designs.log(src, ('**%s** "%s" kaplamasını bastı (%s, #%s)%s'):format(designer, label, vLabel, design.id,
+        publish and (' — mağazada %s%s'):format(Config.Print.currency, shopPrice) or ''))
+    local msg = publish and (wantItem and ('"%s" mağazaya eklendi (%s%s) ve envanterine verildi') or ('"%s" mağazaya eklendi (%s%s)'))
+        :format(label, Config.Print.currency, shopPrice) or ('"%s" basıldı — envanterine eklendi'):format(label)
+    return { ok = true, id = design.id, message = msg }
 end
 
 function Designs.reprint(src, cid, id)
-    local row = MySQL.single.await('SELECT id, model, label, thumb, designer FROM loe_vd_designs WHERE id = ? AND citizenid = ?', { id, cid })
+    local row = MySQL.single.await('SELECT id, model, label, thumb, designer FROM loe_vd_designs WHERE id = ?', { id })
     if not row then return { ok = false, error = 'Tasarım bulunamadı' } end
     if not Config.Vehicles[row.model] then return { ok = false, error = 'Bu araç artık desteklenmiyor' } end
     if not exports.ox_inventory:CanCarryItem(src, Config.Items.livery, 1) then return { ok = false, error = 'Envanterinde yer yok' } end
@@ -216,6 +241,16 @@ function Designs.reprint(src, cid, id)
         return { ok = false, error = err }
     end
     return { ok = true, message = ('"%s" tekrar basıldı'):format(row.label) }
+end
+
+--- Magaza fiyati ve yayin durumu (tasarim ekibi).
+function Designs.setListing(src, id, price, published)
+    if type(id) ~= 'string' or #id > 12 then return { ok = false, error = 'Geçersiz tasarım' } end
+    price = clampPrice(price)
+    local n = MySQL.update.await('UPDATE loe_vd_designs SET price = ?, published = ? WHERE id = ?', { price, published and 1 or 0, id })
+    if (n or 0) == 0 then return { ok = false, error = 'Tasarım bulunamadı' } end
+    Designs.log(src, ('**%s** #%s: %s (%s%s)'):format(Bridge.name(src), id, published and 'mağazada' or 'mağazadan kaldırıldı', Config.Print.currency, price))
+    return { ok = true, message = published and ('Mağazada: %s%s'):format(Config.Print.currency, price) or 'Mağazadan kaldırıldı' }
 end
 
 function Designs.log(src, text)

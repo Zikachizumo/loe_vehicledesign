@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS `loe_vd_designs` (
     `image` LONGTEXT NOT NULL,
     `thumb` MEDIUMTEXT NULL,
     `paint` VARCHAR(255) NULL,
+    `published` TINYINT(1) NOT NULL DEFAULT 0,
+    `price` INT UNSIGNED NOT NULL DEFAULT 0,
+    `sales` INT UNSIGNED NOT NULL DEFAULT 0,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     INDEX `idx_citizen` (`citizenid`)

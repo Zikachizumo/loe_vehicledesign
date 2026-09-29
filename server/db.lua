@@ -40,6 +40,16 @@ CreateThread(function()
             PRIMARY KEY (`plate`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ]])
+    -- v1.2: magaza sutunlari (eski kurulumlarda yoksa ekle)
+    local function ensureColumn(tbl, col, ddl)
+        local has = MySQL.scalar.await(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+            { tbl, col })
+        if (tonumber(has) or 0) == 0 then MySQL.query.await(('ALTER TABLE `%s` ADD COLUMN %s'):format(tbl, ddl)) end
+    end
+    ensureColumn('loe_vd_designs', 'published', '`published` TINYINT(1) NOT NULL DEFAULT 0')
+    ensureColumn('loe_vd_designs', 'price', '`price` INT UNSIGNED NOT NULL DEFAULT 0')
+    ensureColumn('loe_vd_designs', 'sales', '`sales` INT UNSIGNED NOT NULL DEFAULT 0')
     DB.ready = true
     TriggerEvent('loe_vd:server:dbReady')
 end)

@@ -61,15 +61,31 @@ Config.Limits = {
     labelLength = 40,
 }
 
--- Studyo konumlari. jobs = nil -> herkes; { mechanic = 0 } -> sadece o meslek (min rutbe).
+-- TASARIM STUDYOSU SADECE YETKILILERE ACIKTIR (oyuncular erisemez).
+-- Yetki = Config.Command'in izni (varsayilan group.admin). Tasarimcilar /kaplamastudyo ile acar.
+-- Istersen yetkililer icin sabit bir nokta da ekleyebilirsin (yetkisiz oyuncu goremez/acamaz):
 Config.Studios = {
+    -- { label = 'Tasarım Stüdyosu', coords = vec3(-211.55, -1324.55, 30.9), radius = 2.5 },
+}
+
+-- KAPLAMA MAGAZASI (oyuncular): yetkililerin "magazada sat" ile yayinladigi tasarimlar satilir.
+-- Oyuncu aracini noktaya getirir, [E] -> sadece o araca uygun tasarimlar listelenir.
+Config.Shops = {
     {
-        label = 'Araç Tasarım Stüdyosu',
+        label = 'Kaplama Mağazası',
         coords = vec3(-211.55, -1324.55, 30.9), -- Benny's
-        radius = 2.5,
-        jobs = nil,
-        blip = { sprite = 72, color = 46, scale = 0.75, label = 'LoE Tasarım Stüdyosu' },
+        radius = 8.0, -- aracla girilebilecek genislik
+        blip = { sprite = 72, color = 46, scale = 0.75, label = 'LoE Kaplama Mağazası' },
     },
+}
+
+Config.Shop = {
+    mode = 'fit', -- 'fit': satin alinca aracina hemen takilir | 'item': envantere kaplama esyasi verilir
+    onlyOwnVehicles = true, -- sadece kendi (player_vehicles) aracina satin alabilir
+    accounts = { 'bank', 'cash' }, -- sirayla denenir
+    previewSeconds = 15, -- "Onizle" suresi
+    maxVehicleDistance = 6.0, -- magazada aracin oyuncuya en fazla uzakligi (m)
+    defaultPrice = 25000, -- studyoda "Magazada sat" acilinca onerilen fiyat
 }
 
 -- true: ox_target kuresi; false: [E] metin arayuzu (lib.points)

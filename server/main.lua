@@ -48,6 +48,7 @@ local function openPayload(src)
         preview = Config.Preview.enabled,
         price = Config.Print.price or 0,
         currency = Config.Print.currency or '$',
+        shopPrice = Config.Shop and Config.Shop.defaultPrice or 0,
         aiEnabled = Remote.aiEnabled(src),
         fonts = Config.Fonts,
         limits = {
@@ -64,6 +65,8 @@ end
 lib.callback.register('loe_vd:server:open', function(src, studioIndex)
     local cid = Bridge.citizenId(src)
     if not cid then return { ok = false, error = 'Karakter yüklenmedi' } end
+    -- Studyo SADECE tasarim yetkilileri icin (oyuncular magazadan satin alir)
+    if not Bridge.isDesigner(src) then return { ok = false, error = 'Tasarım stüdyosu sadece yetkililere açık' } end
     if studioIndex == 0 then
         if not sessions[src] or sessions[src].studio ~= 0 then return { ok = false, error = 'Yetkin yok' } end
     else
@@ -97,7 +100,7 @@ local busy = {}
 --- Oturum isteyen, ayni anda tek istek calistiran sarmalayici.
 local function guarded(name, fn)
     lib.callback.register(name, function(src, data)
-        if not sessions[src] then return { ok = false, error = 'Stüdyo oturumu yok' } end
+        if not sessions[src] or not Bridge.isDesigner(src) then return { ok = false, error = 'Stüdyo oturumu yok' } end
         local cid = Bridge.citizenId(src)
         if not cid then return { ok = false, error = 'Karakter yüklenmedi' } end
         local key = src .. name
@@ -121,8 +124,12 @@ guarded('loe_vd:server:loadProject', function(src, cid, d) return Designs.loadPr
 guarded('loe_vd:server:deleteProject', function(_, cid, d) return Designs.deleteProject(cid, d.id) end)
 guarded('loe_vd:server:print', function(src, cid, d) return Designs.print(src, cid, d) end)
 guarded('loe_vd:server:reprint', function(src, cid, d) return Designs.reprint(src, cid, d.id) end)
+guarded('loe_vd:server:setListing', function(src, _, d) return Designs.setListing(src, d.id, d.price, d.published == true) end)
 guarded('loe_vd:server:importUrl', function(src, _, d) return Remote.importUrl(src, d.url) end)
 guarded('loe_vd:server:aiGenerate', function(src, _, d) return Remote.aiGenerate(src, d.prompt, d.model) end)
+
+-- Istemci: studyo noktalarini sadece yetkililere goster
+lib.callback.register('loe_vd:server:isDesigner', function(src) return Bridge.isDesigner(src) end)
 
 -- ---------------- Komutlar ----------------
 if Config.Command then

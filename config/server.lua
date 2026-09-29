@@ -28,5 +28,9 @@ ServerConfig.Import = {
     allowedHosts = {},
 }
 
+-- Magaza satisi sonrasi (istege bagli): gelir bir sirket/meslek kasasina gitsin vb.
+-- Ornek (Renewed-Banking): function(src, sale) exports['Renewed-Banking']:addAccountMoney('bennys', sale.price) end
+ServerConfig.OnPurchase = nil
+
 -- Discord webhook (basilan kaplamalari loglamak icin). Bos = kapali.
 ServerConfig.Webhook = GetConvar('loe_vd_webhook', '')

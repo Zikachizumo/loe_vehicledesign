@@ -38,6 +38,7 @@ export type Modal =
   | { type: 'deleteProject'; id: number; name: string }
   | { type: 'confirmClose' }
   | { type: 'switchVehicle'; model: string }
+  | { type: 'listing'; id: string; label: string; price: number; published: boolean }
   | null;
 
 export interface ToolOptions {

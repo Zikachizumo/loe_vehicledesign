@@ -42,6 +42,10 @@ export interface PrintedSummary {
   model: string;
   thumb?: string;
   created: number;
+  designer?: string;
+  price?: number;
+  published?: boolean;
+  sales?: number;
 }
 
 export interface OpenPayload {
@@ -58,6 +62,7 @@ export interface OpenPayload {
   inGame?: boolean;
   price: number;
   currency: string;
+  shopPrice?: number; // magazada sat icin onerilen fiyat
   aiEnabled: boolean;
   limits: { maxLayers: number; maxProjectBytes: number; maxImportBytes: number; maxTextLength: number; maxImageBytes?: number };
   fonts: string[];
