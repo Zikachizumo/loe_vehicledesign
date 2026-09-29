@@ -17,11 +17,15 @@ export interface VehicleDef {
   slotsTotal: number;
   slotsFree: number;
   demo?: boolean; // prosedurel demo arac (basilamaz)
+  supported?: boolean; // modelde kaplama slotu var mi (tarama/config)
+  liveries?: number;
+  modLiveries?: number;
 }
 
 export interface Category {
   id: string;
   label: string;
+  class?: number;
 }
 
 export interface ProjectSummary {
@@ -45,7 +49,13 @@ export interface OpenPayload {
   theme: string;
   player: { name: string; initials: string; role?: string };
   vehicles: VehicleDef[];
+  vehiclesJson?: string; // Lua buyuk listeyi metin olarak yollar
   categories: Category[];
+  catalog?: { total?: number; supported?: number; scannedAt?: number; gameBuild?: number };
+  isAdmin?: boolean;
+  thumbnailUrl?: string;
+  preview?: boolean; // oyun ici canli onizleme acik mi
+  inGame?: boolean;
   price: number;
   currency: string;
   aiEnabled: boolean;

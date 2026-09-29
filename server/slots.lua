@@ -38,16 +38,17 @@ function Slots.acquire(model, designId)
     for i, s in ipairs(m) do
         if s.design == designId then return i end
     end
-    for i, s in ipairs(m) do
-        if not s.design then
-            s.design = designId
+    -- Sondan basa: dusuk numarali liveryler oyunda daha sik kullanilir, cakismayi azalt.
+    for i = #m, 1, -1 do
+        if not m[i].design then
+            m[i].design = designId
             return i
         end
     end
-    for i, s in ipairs(m) do
-        if refCount(s) == 0 then
-            s.design = designId
-            s.refs = {}
+    for i = #m, 1, -1 do
+        if refCount(m[i]) == 0 then
+            m[i].design = designId
+            m[i].refs = {}
             return i
         end
     end

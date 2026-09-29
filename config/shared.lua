@@ -24,7 +24,7 @@ Config.Items = {
 
 -- Basma (Print) ucreti. price = 0 -> ucretsiz.
 Config.Print = {
-    price = 2500,
+    price = 0,
     accounts = { 'bank', 'cash' }, -- sirayla denenir
     currency = '$',
     itemThumbnail = true, -- envanter ikonunda kaplamanin kucuk onizlemesi (metadata.imageurl)
@@ -80,15 +80,51 @@ Config.Command = { name = 'kaplamastudyo', restricted = 'group.admin' }
 -- En yakin aractaki kaplamayi kaldirma komutu (yetkili). nil yaparak kapat.
 Config.AdminRemoveCommand = { name = 'kaplamasok', restricted = 'group.admin' }
 
--- Kutuphane kategorileri (Config.Vehicles[].category ile eslesir)
+-- Kutuphane kategorileri = GTA arac siniflari (GetVehicleClass 0..22).
+-- Taramada her arac sinifina gore otomatik kategorilenir.
 Config.Categories = {
-    { id = 'sports', label = 'SPOR' },
-    { id = 'sedan', label = 'SEDAN' },
-    { id = 'suv', label = 'SUV' },
-    { id = 'truck', label = 'KAMYONET' },
-    { id = 'muscle', label = 'MUSCLE' },
-    { id = 'bike', label = 'MOTOR' },
-    { id = 'emergency', label = 'KAMU' },
+    { id = 'compacts', label = 'KOMPAKT', class = 0 },
+    { id = 'sedans', label = 'SEDAN', class = 1 },
+    { id = 'suvs', label = 'SUV', class = 2 },
+    { id = 'coupes', label = 'COUPE', class = 3 },
+    { id = 'muscle', label = 'MUSCLE', class = 4 },
+    { id = 'sportsclassics', label = 'KLASİK SPOR', class = 5 },
+    { id = 'sports', label = 'SPOR', class = 6 },
+    { id = 'super', label = 'SÜPER', class = 7 },
+    { id = 'motorcycles', label = 'MOTOSİKLET', class = 8 },
+    { id = 'offroad', label = 'ARAZİ', class = 9 },
+    { id = 'industrial', label = 'ENDÜSTRİYEL', class = 10 },
+    { id = 'utility', label = 'HİZMET', class = 11 },
+    { id = 'vans', label = 'VAN', class = 12 },
+    { id = 'cycles', label = 'BİSİKLET', class = 13 },
+    { id = 'boats', label = 'TEKNE', class = 14 },
+    { id = 'helicopters', label = 'HELİKOPTER', class = 15 },
+    { id = 'planes', label = 'UÇAK', class = 16 },
+    { id = 'service', label = 'SERVİS', class = 17 },
+    { id = 'emergency', label = 'KAMU', class = 18 },
+    { id = 'military', label = 'ASKERİ', class = 19 },
+    { id = 'commercial', label = 'TİCARİ', class = 20 },
+    { id = 'openwheel', label = 'FORMULA', class = 22 },
+}
+
+-- Tum araclari tarama (/kaplamatarama). Sonuc data/vehicles_auto.json'a yazilir.
+Config.Scan = {
+    command = 'kaplamatarama', -- yetkili komut (restricted asagida)
+    restricted = 'group.admin',
+    skipClasses = { [21] = true }, -- trenler
+    modelTimeout = 6000, -- ms: model yuklenemezse atla
+}
+
+-- Kutuphane kart gorseli (assets/thumbs yoksa). %s = model adi. nil -> ikon.
+Config.ThumbnailUrl = 'https://docs.fivem.net/vehicles/%s.webp'
+
+-- Oyun ici canli onizleme: studyoda secilen aracin gercegi oyuncunun onunde
+-- gosterilir, tasarim anlik olarak uzerine basilir.
+Config.Preview = {
+    enabled = true,
+    distance = 7.0, -- oyuncunun onunde (m)
+    textureSize = 1024, -- onizleme dokusu (px)
+    fov = 38.0,
 }
 
 -- Yazi araci fontlari (oyuncunun Windows'unda olan fontlar calisir; ozel font NUI'den yuklenebilir)

@@ -26,13 +26,26 @@ export async function refreshLists() {
   }
 }
 
+/** Arac icin en uygun gorunum: GLB -> 3D, oyunda + destekli -> canli, yoksa UV. */
+export function bestMode(v: VehicleDef): 'live' | '3d' | 'uv' {
+  if (v.glb || v.demo) return '3d';
+  const cfg = S().config;
+  if (cfg?.inGame && cfg.preview && v.supported !== false) return 'live';
+  return 'uv';
+}
+
 export function selectVehicle(v: VehicleDef, opts: { keepDoc?: boolean } = {}) {
-  set({ vehicle: v, mode: v.glb || v.demo ? '3d' : 'uv', libraryOpen: !(v.glb || v.demo) });
+  const mode = bestMode(v);
+  set({ vehicle: v, mode, libraryOpen: mode === 'uv' });
   if (!opts.keepDoc) editor.newDocument(v);
 }
 
 export function requestSelectVehicle(v: VehicleDef) {
   const s = S();
+  if (v.supported === false) {
+    toast(T.toast.unsupported, 'err');
+    return;
+  }
   if (s.vehicle?.model === v.model) return;
   if (s.project.dirty) {
     set({ modal: { type: 'switchVehicle', model: v.model } });
@@ -263,6 +276,11 @@ export async function aiGenerate(prompt: string) {
   } finally {
     set((st) => ({ busy: { ...st.busy, ai: false } }));
   }
+}
+
+export async function requestScan() {
+  await fetchNui('scan');
+  set({ visible: false, modal: null });
 }
 
 export function requestClose() {

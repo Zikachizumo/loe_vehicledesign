@@ -26,6 +26,11 @@ yanında kullanarak kaplamayı takar. Kayıtlı araçlarda kaplama plakaya **kal
 - **Oyunda**: tasarım DUI → runtime texture → `AddReplaceTexture` ile modelin livery slotuna
   basılır; sunucu slotları global dağıtır, böylece aynı modelde aynı anda farklı tasarımlar görünür.
 - Kalıcılık: `player_vehicles`'ta kayıtlı araçlarda plaka bazlı; garajdan çıkınca otomatik geri gelir.
+- **Tüm GTA V araçları**: `/kaplamatarama` oyundaki her aracı (sunucu oyun sürümü + eklentiler) tarar,
+  adını/markasını/sınıfını ve kaplama slotlarını bulur; kütüphane otomatik dolar.
+- **Oyunda canlı önizleme**: 3D model dosyası olmayan araçlarda gerçek araç oyunda gösterilir,
+  tasarım anında üzerine basılır; **UV ızgarası** ile hangi bölgenin nereye denk geldiği görülür.
+- Basma ücretsiz (ayarlanabilir); G menüsü gibi kendi menüleriniz için hazır istemci exportları.
 - Türkçe arayüz, tema seçenekleri (`empire` altın, `crimson`, `magenta`, `emerald`, `ice`).
 
 ## Gereksinimler
@@ -48,14 +53,17 @@ yanında kullanarak kaplamayı takar. Kayıtlı araçlarda kaplama plakaya **kal
    `data/items.lua` dosyasına ekle; `install/ox_inventory/web/images/*.png` dosyalarını
    `ox_inventory/web/images/` içine kopyala.
 4. Veritabanı tabloları açılışta otomatik oluşur (`sql/install.sql` elle kurulum için).
-5. Araçları tanımla: `config/vehicles.lua` + `assets/` → [`docs/ARAC_HAZIRLAMA.md`](docs/ARAC_HAZIRLAMA.md)
+5. **Araçları ekle**: oyunda yetkili olarak **`/kaplamatarama`** yaz (bir kez; yeni DLC/araç eklenince
+   tekrar). Tüm araçlar kütüphaneye gelir. Otomatik bulunamayanlar ve eklenti araçlar için:
+   `config/vehicles.lua` + `assets/` → [`docs/ARAC_HAZIRLAMA.md`](docs/ARAC_HAZIRLAMA.md)
 6. (İsteğe bağlı) Yapay zekâ: `set loe_vd_ai_key "sk-..."` (server.cfg). Anahtar yoksa YZ aracı gizlenir.
 7. (İsteğe bağlı) Discord log: `set loe_vd_webhook "https://discord.com/api/webhooks/..."`
 
 ## Kullanım
 
 - Stüdyo: haritadaki **LoE Tasarım Stüdyosu** (varsayılan Benny's) → `[E]`.
-- Yetkili: `/kaplamastudyo` (her yerden açar), `/kaplamasok` (en yakın araçtaki kaplamayı kaldırır).
+- Yetkili: `/kaplamastudyo` (her yerden açar), `/kaplamasok` (en yakın araçtaki kaplamayı kaldırır),
+  `/kaplamatarama` (tüm araçları tarar).
 - Oyuncu: envanterdeki **Araç Kaplaması** eşyasını aracın yanında kullan.
   **Kaplama Sökücü** ile kaplama sökülür.
 
@@ -71,6 +79,12 @@ exports.loe_vehicledesign:OpenStudioFor(source)
 -- client
 exports.loe_vehicledesign:OpenStudio()
 exports.loe_vehicledesign:IsStudioOpen()
+-- client: kendi araç menün (G tuşu vb.) için — ayrıntı: docs/G_MENUSU.md
+exports.loe_vehicledesign:OpenLiveryMenu(vehicle)          -- hazır "Kaplama" alt menüsü
+exports.loe_vehicledesign:GetLiveriesForVehicle(vehicle)   -- bu araca uyan kaplama eşyaları
+exports.loe_vehicledesign:FitLivery(vehicle, slot)         -- takar (ilerleme + sunucu doğrulaması)
+exports.loe_vehicledesign:RemoveLivery(vehicle)            -- sökücü ile söker
+exports.loe_vehicledesign:GetVehicleLivery(vehicle)        -- takılı tasarım kodu | nil
 ```
 
 ## Geliştirme (arayüz)
@@ -83,4 +97,4 @@ bun run build     # web/build/ üretir — ÇIKTIYI COMMIT ET (sunucuda build yo
 ```
 
 Belgeler: [`docs/MASTER_CONTEXT.md`](docs/MASTER_CONTEXT.md) · [`docs/VIDEO_ANALIZI.md`](docs/VIDEO_ANALIZI.md) ·
-[`docs/ROADMAP.md`](docs/ROADMAP.md) · [`docs/CHANGELOG.md`](docs/CHANGELOG.md)
+[`docs/G_MENUSU.md`](docs/G_MENUSU.md) · [`docs/ROADMAP.md`](docs/ROADMAP.md) · [`docs/CHANGELOG.md`](docs/CHANGELOG.md)

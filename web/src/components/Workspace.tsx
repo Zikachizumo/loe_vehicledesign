@@ -4,12 +4,15 @@ import { Icon } from './Icons';
 import { Viewport3D } from './Viewport3D';
 import { UVView } from './UVView';
 import { Seg } from './ui';
+import { LiveView } from './LiveView';
 
 export function Workspace() {
   const vehicle = useStore((s) => s.vehicle);
   const mode = useStore((s) => s.mode);
   const libraryOpen = useStore((s) => s.libraryOpen);
   const has3d = !!(vehicle?.glb || vehicle?.demo);
+  const cfg = useStore((s) => s.config);
+  const canLive = !!(cfg?.preview !== false && vehicle && !vehicle.demo && vehicle.supported !== false);
   return (
     <section className="panel workspace">
       <div className="panel-h">
@@ -17,15 +20,16 @@ export function Workspace() {
           <Icon name={libraryOpen ? 'chevronL' : 'chevronR'} size={15} />
         </button>
         <span className="bar" />
-        <Icon name={!vehicle ? 'car' : mode === '3d' ? 'cube' : 'uv'} size={16} />
-        <b>{!vehicle ? T.ws.workspace : mode === '3d' ? T.ws.title3d : T.ws.titleUv}</b>
+        <Icon name={!vehicle ? 'car' : mode === '3d' ? 'cube' : mode === 'live' ? 'camera' : 'uv'} size={16} />
+        <b>{!vehicle ? T.ws.workspace : mode === '3d' ? T.ws.title3d : mode === 'live' ? T.ws.titleLive : T.ws.titleUv}</b>
         {vehicle && (
           <div className="mode-toggle">
             <Seg
               value={mode}
               options={[
-                { id: '3d', label: T.ws.mode3d, title: has3d ? '' : T.ws.no3d },
-                { id: 'uv', label: T.ws.modeUv },
+                ...(has3d || !canLive ? [{ id: '3d' as const, label: T.ws.mode3d, title: has3d ? '' : T.ws.no3d }] : []),
+                { id: 'uv' as const, label: T.ws.modeUv },
+                ...(canLive ? [{ id: 'live' as const, label: T.ws.modeLive }] : []),
               ]}
               onChange={(m) => set({ mode: m, libraryOpen: m === 'uv' ? libraryOpen : false })}
             />
@@ -45,8 +49,9 @@ export function Workspace() {
           </div>
         ) : (
           <>
-            <Viewport3D active={mode === '3d'} />
+            {(has3d || mode === '3d') && <Viewport3D active={mode === '3d'} />}
             <UVView active={mode === 'uv'} />
+            <LiveView active={mode === 'live'} />
           </>
         )}
       </div>

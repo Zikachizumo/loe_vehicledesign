@@ -8,6 +8,7 @@ import { runtime } from '../runtime';
 import { Icon } from './Icons';
 import { Slider } from './ui';
 import { assetUrl } from '../nui';
+import { drawGrid } from '../engine/grid';
 
 // 2D UV tuvali: yakinlas/kaydir, sablon katmani, secim tutamaclari.
 export function UVView({ active }: { active: boolean }) {
@@ -16,6 +17,7 @@ export function UVView({ active }: { active: boolean }) {
   const view = useRef({ zoom: 0.25, x: 0, y: 0, fitted: false });
   const [zoomPct, setZoomPct] = useState(25);
   const template = useStore((s) => s.template);
+  const grid = useStore((s) => s.grid);
   const tool = useStore((s) => s.tool);
   const vehicle = useStore((s) => s.vehicle);
   const mouse = useRef<{ x: number; y: number } | null>(null);
@@ -103,6 +105,13 @@ export function UVView({ active }: { active: boolean }) {
         g.drawImage(runtime.template, v.x, v.y, S2, S2);
         g.globalAlpha = 1;
       }
+      if (S().grid) {
+        g.save();
+        g.translate(v.x, v.y);
+        g.scale(v.zoom, v.zoom);
+        drawGrid(g, doc.size, { alpha: 0.75 });
+        g.restore();
+      }
       g.strokeStyle = 'rgba(255,255,255,.12)';
       g.strokeRect(v.x - 0.5, v.y - 0.5, S2 + 1, S2 + 1);
       // secim
@@ -162,7 +171,7 @@ export function UVView({ active }: { active: boolean }) {
 
   useEffect(() => {
     redraw.current = true;
-  }, [template, tool]);
+  }, [template, tool, grid]);
 
   // Isaretci olaylari
   useEffect(() => {
@@ -319,8 +328,11 @@ export function UVView({ active }: { active: boolean }) {
           {editor.doc ? `TUVAL · ${editor.doc.size}×${editor.doc.size} PX` : ''}
         </span>
         <div className="grow" />
+        <button className={`chip ${grid ? 'on' : ''}`} title="Canlı önizlemede de görünür" onClick={() => set({ grid: !grid })}>
+          <Icon name="grid" size={13} /> {T.ws.grid}
+        </button>
         <button className={`chip ${template.show ? 'on' : ''}`} onClick={() => set({ template: { ...template, show: !template.show } })}>
-          <Icon name="grid" size={13} /> {T.ws.template}
+          <Icon name="uv" size={13} /> {T.ws.template}
         </button>
         <Slider value={template.opacity} min={0.1} max={1} step={0.05} width={80} onChange={(v) => set({ template: { ...template, opacity: v } })} format={(v) => `${Math.round(v * 100)}%`} />
         <button className="icon-btn" onClick={() => zoomBy(1 / 1.25)}>−</button>

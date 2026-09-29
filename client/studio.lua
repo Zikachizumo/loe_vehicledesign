@@ -15,6 +15,10 @@ local function openStudio(index)
     if cache.vehicle then return notify('Araçtan inmelisin', 'error') end
     local res = lib.callback.await('loe_vd:server:open', false, index)
     if not res or not res.ok then return notify(res and res.error or 'Stüdyo açılamadı', 'error') end
+    -- Arac katalogu (yuzlerce arac) latent aktarimla gelir
+    local catalog = Transfer.await(res.catalog, 30000)
+    res.data.vehiclesJson = catalog or '[]'
+    res.data.inGame = true
     isOpen = true
     lib.hideTextUI()
     SetNuiFocus(true, true)
@@ -31,6 +35,7 @@ end
 local function closeStudio()
     if not isOpen then return end
     isOpen = false
+    Preview.stop()
     uploads = {}
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'close' })
@@ -156,6 +161,35 @@ RegisterNUICallback('print', function(d, cb) relayUpload('loe_vd:server:print', 
 RegisterNUICallback('reprint', function(d, cb) cb(lib.callback.await('loe_vd:server:reprint', false, d) or { ok = false }) end)
 RegisterNUICallback('importUrl', function(d, cb) relayDownload('loe_vd:server:importUrl', d, cb) end)
 RegisterNUICallback('aiGenerate', function(d, cb) relayDownload('loe_vd:server:aiGenerate', d, cb, 180000) end)
+
+-- ---------------- Canli onizleme kopruleri ----------------
+RegisterNUICallback('previewStart', function(d, cb)
+    local ok, err = Preview.start(d and d.model)
+    if ok and d.offset then Preview.offset(d.offset.x, d.offset.y) end
+    cb({ ok = ok == true, error = err })
+end)
+RegisterNUICallback('previewStop', function(_, cb)
+    Preview.stop()
+    cb({ ok = true })
+end)
+RegisterNUICallback('previewCam', function(d, cb)
+    if d.view then Preview.view(d.view) else Preview.cam(tonumber(d.dx), tonumber(d.dy), tonumber(d.zoom)) end
+    cb({ ok = true })
+end)
+RegisterNUICallback('previewOffset', function(d, cb)
+    Preview.offset(d.x, d.y)
+    cb({ ok = true })
+end)
+RegisterNUICallback('previewImage', function(d, cb)
+    local data = takeUpload(d.uploadId)
+    if data then Preview.image(data, d.paint) end
+    cb({ ok = data ~= nil })
+end)
+RegisterNUICallback('scan', function(_, cb)
+    cb({ ok = true })
+    closeStudio()
+    ExecuteCommand(Config.Scan.command)
+end)
 
 AddEventHandler('onResourceStop', function(res)
     if res == GetCurrentResourceName() and isOpen then

@@ -7,7 +7,12 @@ Durum: 🟢 tamam · 🟡 kısmen · 🔴 planlı
 - Bas → modele kilitli ox_inventory eşyası; tak/sök; plakaya kalıcı kayıt; slot dağıtımı.
 - URL'den içe aktarma (sunucu vekili), yapay zekâ (isteğe bağlı), Discord log.
 
+## 🟢 v1.1 — Tüm araçlar + canlı önizleme
+- Oyun içi tarama ile otomatik katalog, OYUNDA modu, UV ızgarası, ücretsiz basma, G menüsü exportları.
+
 ## 🟡 Doğrulanacaklar (ilk sunucu testinde)
+- [ ] `/kaplamatarama` sonucu: kaç araç "kaplamalı" çıktı, doku adı bulunamayanlar hangileri?
+- [ ] Canlı önizlemede kaplama görünüyor mu, kamera ve şeffaf alan hizası doğru mu?
 - [ ] Gerçek bir araçta `txd`/`texture`/`method` ayarı → kaplama görünüyor mu?
 - [ ] DUI şeffaflığı (boş alanlarda araç boyası görünmeli).
 - [ ] Garajdan çıkan kayıtlı araçta otomatik geri yükleme (qbx_garages ile).
@@ -15,7 +20,7 @@ Durum: 🟢 tamam · 🟡 kısmen · 🔴 planlı
 - [ ] Bitirim envanterinde eşya ikonu (metadata.imageurl) ve açıklama görünümü.
 
 ## 🔴 Sonraki
-- Oyun içi **canlı önizleme**: editör açıkken gerçek araç üzerinde anlık doku.
+- G tuşu araç menüsü (araç/motor bilgisi) — `OpenLiveryMenu` ile bağlanacak.
 - Mekanik mesleği için müşteri aracına "iş emri" akışı.
 - Stüdyo içinde araç çağırma / döndürme kamerası.
 - Takım/ekip kaplamaları (tasarımı paylaşma, izinli yeniden basma).

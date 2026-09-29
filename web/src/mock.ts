@@ -11,26 +11,43 @@ export const MOCK_OPEN: OpenPayload = {
   brand: { name: 'Legends of Empire', short: 'LoE RP', tagline: 'ARAÇ TASARIM STÜDYOSU' },
   theme: 'empire',
   player: { name: 'Zika Chizumo', initials: 'ZC', role: 'Tasarımcı' },
-  price: 2500,
+  price: 0,
   currency: '$',
   aiEnabled: true,
   fonts: ['Impact', 'Arial Black', 'Bahnschrift', 'Segoe UI', 'Georgia', 'Courier New', 'Trebuchet MS', 'Verdana'],
   limits: { maxLayers: 80, maxProjectBytes: 12 * 1024 * 1024, maxImportBytes: 8 * 1024 * 1024, maxTextLength: 48 },
   categories: [
-    { id: 'sports', label: 'SPOR' },
-    { id: 'sedan', label: 'SEDAN' },
-    { id: 'suv', label: 'SUV' },
-    { id: 'truck', label: 'KAMYONET' },
+    { id: 'compacts', label: 'KOMPAKT' },
+    { id: 'suvs', label: 'SUV' },
     { id: 'muscle', label: 'MUSCLE' },
+    { id: 'sports', label: 'SPOR' },
+    { id: 'super', label: 'SÜPER' },
+    { id: 'motorcycles', label: 'MOTOSİKLET' },
+    { id: 'vans', label: 'VAN' },
+    { id: 'helicopters', label: 'HELİKOPTER' },
     { id: 'emergency', label: 'KAMU' },
   ],
+  isAdmin: true,
+  inGame: false,
+  preview: true,
+  thumbnailUrl: 'https://docs.fivem.net/vehicles/%s.webp',
+  catalog: { total: 14, supported: 9 },
+  // Tarayici testi icin ornek katalog (oyunda /kaplamatarama ile gercek liste gelir)
   vehicles: [
-    { model: 'loe_demo', label: 'Demo Coupe', brand: 'LoE', year: 2026, category: 'sports', size: 2048, demo: true, slotsTotal: 16, slotsFree: 16 },
-    { model: 'm8', label: 'M8 Competition', brand: 'BMW', year: 2020, category: 'sports', size: 2048, uv: 'assets/uv/m8.png', slotsTotal: 16, slotsFree: 14 },
-    { model: 'rs7', label: 'RS7', brand: 'Audi', year: 2021, category: 'sedan', size: 2048, slotsTotal: 16, slotsFree: 16 },
-    { model: 'gtr17', label: 'GT-R', brand: 'Nissan', year: 2017, category: 'sports', size: 2048, slotsTotal: 16, slotsFree: 11 },
-    { model: 'raptor', label: 'F-150 Raptor', brand: 'Ford', year: 2019, category: 'truck', size: 2048, slotsTotal: 12, slotsFree: 12 },
-    { model: 'police5', label: 'Devriye Aracı', brand: 'LSPD', year: 2024, category: 'emergency', size: 1024, slotsTotal: 8, slotsFree: 8 },
+    { model: 'loe_demo', label: 'Demo Coupe', brand: 'LoE', year: 2026, category: 'sports', size: 2048, demo: true, supported: true, slotsTotal: 16, slotsFree: 16 },
+    { model: 'sultanrs', label: 'Sultan RS', brand: 'Karin', category: 'super', size: 1024, supported: true, slotsTotal: 15, slotsFree: 15 },
+    { model: 'elegy', label: 'Elegy Retro Custom', brand: 'Annis', category: 'sports', size: 1024, supported: true, slotsTotal: 12, slotsFree: 12 },
+    { model: 'jester4', label: 'Jester RR', brand: 'Dinka', category: 'sports', size: 1024, supported: true, slotsTotal: 10, slotsFree: 9 },
+    { model: 'comet6', label: 'Comet S2', brand: 'Pfister', category: 'sports', size: 1024, supported: true, slotsTotal: 10, slotsFree: 10 },
+    { model: 'police3', label: 'Police Cruiser', brand: 'Vapid', category: 'emergency', size: 1024, supported: true, slotsTotal: 3, slotsFree: 3 },
+    { model: 'sanchez', label: 'Sanchez', brand: 'Maibatsu', category: 'motorcycles', size: 1024, supported: true, slotsTotal: 4, slotsFree: 4 },
+    { model: 'frogger', label: 'Frogger', brand: 'Maibatsu', category: 'helicopters', size: 1024, supported: true, slotsTotal: 3, slotsFree: 3 },
+    { model: 'drift_demo', label: 'M8 Competition (eklenti)', brand: 'BMW', year: 2020, category: 'sports', size: 2048, supported: true, uv: 'assets/uv/m8.png', slotsTotal: 16, slotsFree: 14 },
+    { model: 'adder', label: 'Adder', brand: 'Truffade', category: 'super', size: 1024, supported: false, slotsTotal: 0, slotsFree: 0 },
+    { model: 'blista', label: 'Blista', brand: 'Dinka', category: 'compacts', size: 1024, supported: false, slotsTotal: 0, slotsFree: 0 },
+    { model: 'baller', label: 'Baller', brand: 'Gallivanter', category: 'suvs', size: 1024, supported: false, slotsTotal: 0, slotsFree: 0 },
+    { model: 'bison', label: 'Bison', brand: 'Bravado', category: 'vans', size: 1024, supported: false, slotsTotal: 0, slotsFree: 0 },
+    { model: 'dominator', label: 'Dominator', brand: 'Vapid', category: 'muscle', size: 1024, supported: false, slotsTotal: 0, slotsFree: 0 },
   ],
 };
 
@@ -89,6 +106,7 @@ export function installMocks() {
     return { ok: true, transfer };
   });
   registerMock('close', () => ({ ok: true }));
+  registerMock('scan', () => ({ ok: true }));
 }
 
 function sendDownload(id: string, data: string) {

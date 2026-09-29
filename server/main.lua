@@ -13,39 +13,16 @@ local function jobAllowed(src, jobs)
     return min ~= nil and grade >= min
 end
 
-local function vehiclesPayload()
-    local list = {}
-    if Config.ShowDemoVehicle then
-        list[#list + 1] = {
-            model = 'loe_demo', label = 'Demo Coupe', brand = 'LoE', year = 2026, category = 'sports',
-            size = 2048, demo = true, slotsTotal = 16, slotsFree = 16,
-        }
-    end
-    for model, v in pairs(Config.Vehicles) do
-        local free, total = Slots.free(model)
-        list[#list + 1] = {
-            model = model,
-            label = v.label or model,
-            brand = v.brand,
-            year = v.year,
-            category = v.category or 'sports',
-            size = v.size or 2048,
-            glb = v.glb,
-            uv = v.uv,
-            thumb = v.thumb,
-            uvChannel = v.uvChannel,
-            liveryMaterials = v.liveryMaterials,
-            excludeMaterials = v.excludeMaterials,
-            rotationY = v.rotationY,
-            slotsTotal = total,
-            slotsFree = free,
-        }
-    end
-    table.sort(list, function(a, b)
-        if a.demo ~= b.demo then return a.demo == true end
-        return (a.brand or '') .. a.label < (b.brand or '') .. b.label
-    end)
-    return list
+local DEMO = {
+    model = 'loe_demo', label = 'Demo Coupe', brand = 'LoE', year = 2026, category = 'sports',
+    size = 2048, demo = true, supported = true, slotsTotal = 16, slotsFree = 16,
+}
+
+--- Kutuphane listesi (JSON). Buyuk olabildigi icin latent aktarimla gider.
+local function catalogJson()
+    local list = Catalog.forNui()
+    if Config.ShowDemoVehicle then table.insert(list, 1, DEMO) end
+    return json.encode(list)
 end
 
 local function initials(name)
@@ -64,8 +41,11 @@ local function openPayload(src)
         brand = Config.Brand,
         theme = Config.Theme,
         player = { name = name, initials = initials(name), role = jobName and jobName:gsub('^%l', string.upper) or 'Tasarımcı' },
-        vehicles = vehiclesPayload(),
         categories = Config.Categories,
+        catalog = Catalog.meta,
+        isAdmin = IsPlayerAceAllowed(src, 'command.' .. Config.Scan.command),
+        thumbnailUrl = Config.ThumbnailUrl,
+        preview = Config.Preview.enabled,
         price = Config.Print.price or 0,
         currency = Config.Print.currency or '$',
         aiEnabled = Remote.aiEnabled(src),
@@ -93,7 +73,7 @@ lib.callback.register('loe_vd:server:open', function(src, studioIndex)
         if not jobAllowed(src, st.jobs) then return { ok = false, error = 'Bu stüdyoyu kullanma yetkin yok' } end
     end
     sessions[src] = { studio = studioIndex, t = os.time() }
-    return { ok = true, data = openPayload(src) }
+    return { ok = true, data = openPayload(src), catalog = Transfer.push(src, catalogJson()) }
 end)
 
 RegisterNetEvent('loe_vd:server:closed', function()

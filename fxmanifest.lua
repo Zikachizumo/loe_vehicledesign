@@ -26,8 +26,11 @@ shared_scripts {
 client_scripts {
     'client/transfer.lua',
     'client/textures.lua',
+    'client/scanner.lua',
+    'client/preview.lua',
     'client/studio.lua',
     'client/fit.lua',
+    'client/api.lua',
 }
 
 server_scripts {
@@ -37,6 +40,7 @@ server_scripts {
     'server/db.lua',
     'server/transfer.lua',
     'server/slots.lua',
+    'server/catalog.lua',
     'server/designs.lua',
     'server/fit.lua',
     'server/remote.lua',

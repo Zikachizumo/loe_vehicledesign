@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { set, useStore } from '../store';
 import { T } from '../i18n';
 import { Icon } from './Icons';
 import { assetUrl } from '../nui';
-import { refreshLists, requestSelectVehicle, loadProject, reprint } from '../actions';
+import { refreshLists, requestSelectVehicle, loadProject, reprint, requestScan } from '../actions';
 import type { VehicleDef } from '../types';
 
 export function Library() {
@@ -17,9 +17,7 @@ export function Library() {
         <span className="bar" />
         <Icon name="car" size={16} />
         <b>{T.library.title}</b>
-        <em>
-          {vehicles.length} {T.library.models}
-        </em>
+        <em>{T.library.count(vehicles.filter((v) => !v.demo).length, vehicles.filter((v) => !v.demo && v.supported !== false).length)}</em>
       </div>
       <div className="tabs">
         <button className={tab === 'vehicles' ? 'on' : ''} onClick={() => set({ libraryTab: 'vehicles' })}>
@@ -50,52 +48,91 @@ function VehicleGrid() {
   const cfg = useStore((s) => s.config);
   const search = useStore((s) => s.search);
   const category = useStore((s) => s.category);
+  const onlySupported = useStore((s) => s.onlySupported);
   const current = useStore((s) => s.vehicle?.model);
+  const all = cfg?.vehicles ?? [];
+  const real = all.filter((v) => !v.demo);
   const list = useMemo(() => {
     const q = search.trim().toLocaleLowerCase('tr');
-    return (cfg?.vehicles ?? []).filter(
+    return all.filter(
       (v) =>
+        (!onlySupported || v.supported !== false) &&
         (category === 'all' || v.category === category) &&
         (!q || `${v.brand ?? ''} ${v.label} ${v.model}`.toLocaleLowerCase('tr').includes(q)),
     );
-  }, [cfg, search, category]);
+  }, [all, search, category, onlySupported]);
+  // sadece arac bulunan kategorileri goster
+  const cats = useMemo(() => {
+    const used = new Set(all.filter((v) => !onlySupported || v.supported !== false).map((v) => v.category));
+    return (cfg?.categories ?? []).filter((c) => used.has(c.id));
+  }, [cfg, all, onlySupported]);
+  const shown = list.slice(0, 400);
   return (
     <>
       <div className="search">
         <Icon name="search" size={15} />
         <input placeholder={T.library.search} value={search} onChange={(e) => set({ search: e.target.value })} />
+        <button className={`mini-toggle ${onlySupported ? 'on' : ''}`} title={T.library.onlySupported} onClick={() => set({ onlySupported: !onlySupported, category: 'all' })}>
+          {T.library.onlySupported}
+        </button>
       </div>
       <div className="chips">
-        {[{ id: 'all', label: 'TÜMÜ' }, ...(cfg?.categories ?? [])].map((c) => (
+        {[{ id: 'all', label: 'TÜMÜ' }, ...cats].map((c) => (
           <button key={c.id} className={category === c.id ? 'on' : ''} onClick={() => set({ category: c.id })}>
             {c.label}
           </button>
         ))}
       </div>
+      {!real.length && (
+        <div className="scan-cta">
+          <Icon name="refresh" size={20} />
+          <b>{T.library.catalogEmpty}</b>
+          <span>{T.library.catalogEmptySub}</span>
+          {cfg?.isAdmin && (
+            <button className="btn primary" onClick={() => void requestScan()}>
+              {T.library.scan}
+            </button>
+          )}
+        </div>
+      )}
       <div className="vgrid">
-        {list.map((v) => (
+        {shown.map((v) => (
           <VehicleCard key={v.model} v={v} active={current === v.model} />
         ))}
-        {!list.length && <p className="empty">{T.library.empty}</p>}
+        {!list.length && real.length > 0 && <p className="empty">{T.library.empty}</p>}
+        {list.length > shown.length && <p className="empty">+{list.length - shown.length} araç daha — aramayı daralt</p>}
       </div>
+      {cfg?.isAdmin && real.length > 0 && (
+        <button className="rescan" title={T.library.scanInfo} onClick={() => void requestScan()}>
+          <Icon name="refresh" size={12} /> {T.library.scan}
+        </button>
+      )}
     </>
   );
 }
 
+function thumbFor(v: VehicleDef, pattern?: string): string | null {
+  if (v.thumb) return assetUrl(v.thumb);
+  if (v.demo || !pattern) return null;
+  return pattern.replace('%s', v.model);
+}
+
 function VehicleCard({ v, active }: { v: VehicleDef; active: boolean }) {
   const catLabel = useStore((s) => s.config?.categories.find((c) => c.id === v.category)?.label ?? v.category);
-  const badge = v.demo ? T.library.demo : v.glb || v.uv ? T.library.uvReady : T.library.only2d;
+  const thumbPattern = useStore((s) => s.config?.thumbnailUrl);
+  const [imgOk, setImgOk] = useState(true);
+  const unsupported = v.supported === false;
+  const badge = v.demo ? T.library.demo : unsupported ? T.library.noLivery : v.glb || v.uv ? T.library.uvReady : `${v.slotsTotal} SLOT`;
+  const src = thumbFor(v, thumbPattern);
   return (
-    <button className={`vcard ${active ? 'on' : ''}`} onClick={() => requestSelectVehicle(v)}>
-      <span className={`badge ${v.demo ? 'demo' : ''}`}>{badge}</span>
+    <button className={`vcard ${active ? 'on' : ''} ${unsupported ? 'off' : ''}`} onClick={() => requestSelectVehicle(v)}>
+      <span className={`badge ${v.demo ? 'demo' : ''} ${unsupported ? 'none' : ''}`}>{badge}</span>
       <div className="thumb">
-        {v.thumb ? <img src={assetUrl(v.thumb)} alt="" draggable={false} /> : <Icon name="car" size={40} />}
+        {src && imgOk ? <img src={src} alt="" loading="lazy" draggable={false} onError={() => setImgOk(false)} /> : <Icon name="car" size={40} />}
       </div>
       <small>{v.brand ?? '—'}</small>
       <b>{v.label}</b>
-      <span>
-        {[v.year, catLabel, `${v.slotsFree}/${v.slotsTotal} ${T.library.slots}`].filter(Boolean).join(' · ')}
-      </span>
+      <span>{[v.year, catLabel, unsupported ? null : `${v.slotsFree}/${v.slotsTotal} ${T.library.slots}`].filter(Boolean).join(' · ')}</span>
     </button>
   );
 }

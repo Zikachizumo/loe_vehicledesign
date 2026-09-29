@@ -12,13 +12,26 @@ import { Modals, Toasts } from './components/Modals';
 import { editor } from './engine/editor';
 import { refreshLists, requestClose } from './actions';
 import { MOCK_OPEN, installMocks } from './mock';
+import { initPreviewSync } from './preview';
 
 export default function App() {
   const visible = useStore((s) => s.visible);
   const libraryOpen = useStore((s) => s.libraryOpen);
+  const live = useStore((s) => s.mode === 'live' && !!s.vehicle);
   const theme = useStore((s) => s.config?.theme);
 
-  useNuiEvent<OpenPayload>('open', (cfg) => {
+  useNuiEvent<OpenPayload>('open', (raw) => {
+    const cfg = { ...raw };
+    if (cfg.vehiclesJson !== undefined) {
+      try {
+        const list = JSON.parse(cfg.vehiclesJson);
+        cfg.vehicles = Array.isArray(list) ? (list as VehicleDef[]) : [];
+      } catch {
+        cfg.vehicles = [];
+      }
+      delete cfg.vehiclesJson;
+    }
+    cfg.vehicles = cfg.vehicles ?? [];
     set({ config: cfg, visible: true });
     const v = S().vehicle;
     if (v) {
@@ -39,6 +52,8 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme || 'empire';
   }, [theme]);
+
+  useEffect(() => initPreviewSync(), []);
 
   // Tarayicida acilista sahte veriyle ac
   useEffect(() => {
@@ -96,7 +111,7 @@ export default function App() {
 
   if (!visible) return null;
   return (
-    <div className={`app ${libraryOpen ? '' : 'lib-closed'}`}>
+    <div className={`app ${libraryOpen ? '' : 'lib-closed'} ${live ? 'live' : ''}`}>
       <TopBar />
       <div className="main">
         {libraryOpen && <Library />}

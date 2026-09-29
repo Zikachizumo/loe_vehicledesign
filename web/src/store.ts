@@ -22,7 +22,7 @@ export type ToolId =
   | 'history'
   | 'ai';
 
-export type ViewMode = '3d' | 'uv';
+export type ViewMode = '3d' | 'uv' | 'live';
 
 export interface Toast {
   id: number;
@@ -85,6 +85,8 @@ interface State {
   recentImages: { src: string; name: string }[];
   pendingImage: string | null; // yerlestirilmeyi bekleyen gorsel (gorsel araci)
   template: { show: boolean; opacity: number };
+  grid: boolean; // UV izgarasi yardimcisi (UV + canli onizleme)
+  onlySupported: boolean; // kutuphanede sadece kaplama destekleyenler
   cloneSource: { x: number; y: number } | null;
 }
 
@@ -131,6 +133,8 @@ export const useStore = create<State>(() => ({
   recentImages: [],
   pendingImage: null,
   template: { show: true, opacity: 0.85 },
+  grid: false,
+  onlySupported: true,
   cloneSource: null,
 }));
 

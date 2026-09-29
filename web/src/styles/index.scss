@@ -251,7 +251,7 @@ select {
       font-weight: 700;
       white-space: nowrap;
     }
-    &:hover:not(:disabled) {
+    &:hover:not(:disabled):not(.on) {
       color: #fff;
       background: rgba(255, 255, 255, 0.04);
     }
@@ -342,16 +342,80 @@ select {
     color: var(--dim);
     input {
       flex: 1;
+      min-width: 0;
       background: none;
       border: 0;
       outline: none;
     }
+    .mini-toggle {
+      flex-shrink: 0;
+      font-family: var(--font-head);
+      font-size: 8.5px;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 3px;
+      color: var(--dim);
+      border: 1px solid var(--line);
+      &.on {
+        color: var(--accent-2);
+        border-color: var(--accent-line);
+        background: var(--accent-soft);
+      }
+    }
+  }
+  .chips button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .scan-cta {
+    margin: 4px 10px 10px;
+    padding: 14px;
+    border-radius: 5px;
+    border: 1px dashed var(--accent-line);
+    background: var(--accent-soft);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    svg {
+      color: var(--accent);
+    }
+    b {
+      font-family: var(--font-head);
+      letter-spacing: 0.06em;
+    }
+    span {
+      color: var(--dim);
+      font-size: 11.5px;
+      line-height: 1.45;
+    }
+  }
+  .rescan {
+    margin: -4px 10px 8px;
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-head);
+    font-size: 8.5px;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    color: var(--dimmer);
+    &:hover {
+      color: var(--accent-2);
+    }
   }
   .chips {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
     gap: 4px;
     padding: 8px 10px;
+    flex-shrink: 0;
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
     button {
       padding: 4px 9px;
       border-radius: 3px;
@@ -370,12 +434,26 @@ select {
   }
   .vgrid {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: max-content;
     gap: 8px;
     padding: 0 10px 10px;
     align-content: start;
+  }
+  .panel-h {
+    b {
+      white-space: nowrap;
+    }
+    em {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.04em;
+      font-size: 9.5px;
+    }
   }
   .empty {
     grid-column: 1 / -1;
@@ -384,6 +462,7 @@ select {
 .vcard {
   position: relative;
   text-align: left;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -400,6 +479,10 @@ select {
   &.on {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent-line), 0 0 22px var(--accent-soft);
+  }
+  &.off {
+    opacity: 0.42;
+    filter: grayscale(0.8);
   }
   .badge {
     position: absolute;
@@ -418,6 +501,11 @@ select {
       color: #9fe8ff;
       background: rgba(56, 189, 248, 0.12);
       border-color: rgba(56, 189, 248, 0.4);
+    }
+    &.none {
+      color: var(--dim);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--line-2);
     }
   }
   .thumb {
@@ -1844,5 +1932,45 @@ select {
   }
   .footer .steps {
     gap: 20px;
+  }
+}
+
+// ================= Canli oyun onizlemesi =================
+.app.live {
+  background: transparent;
+  animation: none;
+  .workspace {
+    background: transparent;
+    border-color: var(--accent-line);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+  }
+  .workspace > .panel-h {
+    background: var(--panel);
+  }
+  .ws-body {
+    background: transparent;
+  }
+}
+.liveview {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  &:active {
+    cursor: grabbing;
+  }
+  .model-tag,
+  .view-bar {
+    pointer-events: none;
+  }
+  .views {
+    pointer-events: auto;
+    button.on {
+      color: var(--accent-ink);
+      background: linear-gradient(180deg, var(--accent-2), var(--accent));
+    }
+  }
+  .overlay-msg.soft {
+    background: radial-gradient(500px 260px at 50% 45%, var(--accent-soft), transparent 70%), #070709;
+    pointer-events: none;
   }
 }

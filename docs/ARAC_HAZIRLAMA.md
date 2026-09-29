@@ -1,5 +1,31 @@
 # Araç Hazırlama Rehberi
 
+## 0) Önce: tüm araçları otomatik tara (orijinal GTA V araçları)
+
+Oyunda yetkili olarak **`/kaplamatarama`** yaz (veya stüdyo kütüphanesindeki
+**TÜM ARAÇLARI TARA** düğmesi). Tarama sunucunun oyun sürümündeki (`sv_enforceGameBuild`) ve
+eklenti olarak yüklü **her aracı** sırayla görünmez şekilde yükler ve şunları bulur:
+
+- ad, marka, sınıf (kütüphane kategorisi)
+- kaç livery'si (`SetVehicleLivery`) ve kaç livery modu (`SetVehicleMod 48`) olduğu
+- livery doku adını bilinen adlandırma kalıplarıyla tahmin eder ve oyunda doğrular
+
+Sonuç `data/vehicles_auto.json`'a yazılır, kütüphane anında güncellenir. Birkaç dakika sürer;
+yeni DLC / araç eklediğinde tekrar çalıştır.
+
+> **Önemli:** GTA'da bir araç özel tasarımı ancak modelinde **livery (kaplama) slotu** varsa
+> gösterebilir. Orijinal araçların bir kısmında (polis/kamu, yarış/tuner DLC araçları, bazı
+> motorlar/uçaklar…) bu slot vardır, bir kısmında yoktur. Slotu olmayanlar kütüphanede
+> "KAPLAMA YOK" olarak soluk görünür. Slotu olup doku adı otomatik bulunamayanlar için
+> aşağıdaki adımlarla `config/vehicles.lua`'ya elle ekleyebilirsin (elle tanım taramayı ezer).
+>
+> Orijinal araçların 3D modelleri Rockstar'ın dosyalarıdır, bu repoya konmaz. Bu araçlarda
+> 3D yerine **OYUNDA (canlı önizleme)** modu kullanılır: gerçek araç oyunda döner, tasarım
+> anında üzerinde görünür. **IZGARA** ile UV'de hangi harf-numaranın araçta nereye denk
+> geldiğini görürsün.
+
+---
+
 Bir aracın stüdyoda tasarlanıp oyunda gösterilebilmesi için 3 şey gerekir:
 
 1. **Livery slotları** (zorunlu) — modelde tasarımın basılacağı boş livery dokuları.
@@ -30,8 +56,10 @@ OpenIV / CodeWalker ile aracın dosyalarını aç:
 - `'mod'` yöntemi: `<model>_livery1.yft`, `<model>_livery2.yft`… Her `.yft`'nin gömülü doku
   sözlüğünün adı genelde yft adıdır. → `txd = '<model>_livery%d'`, `texture = '<doku adı>%d'`
 
-`%d` yerine slot numarası (1..slots) yazılır. Numara farklı başlıyorsa `indexOffset` kullan
-(oyundaki index = `slot - 1 + indexOffset`).
+`%d` yerine **livery numarası** yazılır (1 tabanlı; = `slot + indexOffset`).
+Oyundaki index = `slot - 1 + indexOffset`. Örnek: `indexOffset = 1` → tasarım slotu 1,
+oyunda livery index 1'i (`_sign_2`) kullanır; livery 0 (aracın varsayılanı) bozulmaz.
+Tarama `'livery'` yönteminde bunu otomatik yapar.
 
 ### Slot sayısını artırma / orijinal liveryleri korumak
 Araçta 4 livery varsa ve bunlar kullanılacaksa, tasarım slotu olarak **ekstra boş** livery

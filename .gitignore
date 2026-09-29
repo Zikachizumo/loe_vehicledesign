@@ -2,3 +2,6 @@ node_modules
 .DS_Store
 *.log
 # web/build BILEREK commit edilir: sunucuda Bun/Node yok, fxmanifest web/build/index.html'i servis eder.
+
+# Tarama sonucu sunucuda olusur (git pull cakismasin)
+data/vehicles_auto.json

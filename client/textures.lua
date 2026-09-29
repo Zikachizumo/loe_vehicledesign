@@ -20,13 +20,47 @@ local painted = {} -- [veh] = anahtar (ayni boyayi tekrar tekrar uygulama)
 local texCounter = 0
 
 local hashToModel = {}
-for model in pairs(Config.Vehicles) do hashToModel[joaat(model)] = model end
+local function rebuildHashes()
+    hashToModel = {}
+    for model in pairs(Config.Vehicles) do hashToModel[joaat(model)] = model end
+end
+rebuildHashes()
+
+--- Sunucudan guncel livery tanimlarini al (elle + tarama). Tarama sonrasi tekrar cagrilir.
+local function fetchDefs()
+    for _ = 1, 10 do
+        local ok, res = pcall(lib.callback.await, 'loe_vd:server:liveryDefs', false)
+        if ok and res and res.transfer then
+            local raw = Transfer.await(res.transfer, 60000)
+            local okj, defs = pcall(json.decode, raw or '')
+            if okj and type(defs) == 'table' then
+                Config.Vehicles = defs
+                rebuildHashes()
+                return true
+            end
+        end
+        Wait(3000)
+    end
+    return false
+end
+
+local fetching = false
+RegisterNetEvent('loe_vd:client:defsUpdated', function()
+    if fetching then return end
+    fetching = true
+    fetchDefs()
+    fetching = false
+end)
+CreateThread(function()
+    Wait(2000)
+    TriggerEvent('loe_vd:client:defsUpdated')
+end)
 
 local function dbg(...)
     if Config.Debug then print('[loe_vd]', ...) end
 end
 
-local function sendToDui(dui, data)
+function Liveries.sendToDui(dui, data)
     local size = 256 * 1024
     local total = math.max(1, math.ceil(#data / size))
     SendDuiMessage(dui, json.encode({ loe = true, type = 'begin', total = total }))
@@ -35,8 +69,10 @@ local function sendToDui(dui, data)
     end
 end
 
+-- Doku adlarindaki %d = livery numarasi (1 tabanli) = slot + indexOffset
 local function slotNames(def, slot)
-    return def.txd:format(slot), def.texture:format(slot)
+    local n = slot + (def.indexOffset or 0)
+    return def.txd:format(n), def.texture:format(n)
 end
 
 local function unload(id)
@@ -92,20 +128,54 @@ function Liveries.load(id, size)
         local texName = ('d_%s_%d'):format(id, texCounter)
         CreateRuntimeTextureFromDuiHandle(rtTxd, texName, GetDuiHandle(dui))
         Wait(400)
-        sendToDui(dui, data)
+        Liveries.sendToDui(dui, data)
         t.dui, t.texName, t.state = dui, texName, 'ready'
         dbg('doku hazir', id, texName)
         -- Sayfa gec yuklendiyse ilk mesaj kaybolmasin diye bir kez daha gonder
         SetTimeout(2500, function()
-            if textures[id] == t and t.dui then sendToDui(t.dui, data) end
+            if textures[id] == t and t.dui then Liveries.sendToDui(t.dui, data) end
             data = nil
         end)
     end)
     return t
 end
 
+local overrides = {} -- ['model:slot'] = true (canli onizleme slotu gecici olarak kullaniyor)
+
+--- Canli onizleme icin bir slotu gecici olarak baska dokuya yonlendir.
+function Liveries.override(model, slot, txd, tex)
+    local def = Config.Vehicles[model]
+    if not def then return end
+    local key = model .. ':' .. slot
+    local otxd, otex = slotNames(def, slot)
+    if bound[key] then RemoveReplaceTexture(otxd, otex) end
+    AddReplaceTexture(otxd, otex, txd, tex)
+    overrides[key] = true
+    bound[key] = nil
+end
+
+function Liveries.restore(model, slot)
+    local def = Config.Vehicles[model]
+    local key = model .. ':' .. slot
+    if not def or not overrides[key] then return end
+    RemoveReplaceTexture(slotNames(def, slot))
+    overrides[key] = nil
+    bound[key] = nil -- bakim dongusu gercek tasarimi varsa yeniden baglar
+end
+
+function Liveries.applyIndex(veh, def, slot)
+    local idx = (slot - 1) + (def.indexOffset or 0)
+    if def.method == 'livery' then
+        SetVehicleLivery(veh, idx)
+    else
+        SetVehicleModKit(veh, 0)
+        SetVehicleMod(veh, 48, idx, false)
+    end
+end
+
 local function bindSlot(def, model, slot, id)
     local key = model .. ':' .. slot
+    if overrides[key] then return false end
     local t = textures[id]
     if not t or t.state ~= 'ready' then return false end
     if bound[key] == id then return true end
@@ -189,7 +259,7 @@ CreateThread(function()
         local pos = GetEntityCoords(cache.ped)
         local maxDist = Config.Textures.streamDistance
         for _, veh in ipairs(GetGamePool('CVehicle')) do
-            if NetworkGetEntityIsNetworked(veh) then
+            if veh ~= (Preview and Preview.vehicle) and NetworkGetEntityIsNetworked(veh) then
                 local st = Entity(veh).state[STATE]
                 if st and #(GetEntityCoords(veh) - pos) < maxDist then process(veh, st, now) end
             end

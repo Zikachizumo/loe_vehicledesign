@@ -3,7 +3,7 @@
 > Projenin **tek teknik referansı**. Yeni bir sohbet/geliştirici bunu okuyunca kaldığı yerden
 > devam edebilmeli. Değişiklikler: [`CHANGELOG.md`](./CHANGELOG.md) · Plan: [`ROADMAP.md`](./ROADMAP.md)
 
-Son güncelleme: 2026-09-29
+Son güncelleme: 2026-09-29 (v1.1)
 
 ## 1. Amaç
 Legends of Empire RP (Qbox) için oyun içi 3D kaplama editörü: tasarla → modele kilitli eşya
@@ -21,8 +21,11 @@ olarak bas → aracın yanında kullanarak tak → (kayıtlı araçta) plakaya k
 ```
 fxmanifest.lua
 config/  shared.lua (genel) · vehicles.lua (araçlar) · server.lua (sunucu-özel, YZ/import/webhook)
-client/  transfer.lua · textures.lua (DUI + state bag + bakım döngüsü) · studio.lua (nokta/NUI) · fit.lua (item)
-server/  bridge.lua (Qbox) · db.lua · transfer.lua · slots.lua · designs.lua · fit.lua · remote.lua · main.lua
+client/  transfer.lua · textures.lua (DUI + state bag + bakım döngüsü) · scanner.lua (tüm araç taraması)
+         preview.lua (canlı oyun önizlemesi) · studio.lua (nokta/NUI) · fit.lua (takma/sökme) · api.lua (G menüsü exportları)
+server/  bridge.lua (Qbox) · db.lua · transfer.lua · slots.lua · catalog.lua (tarama + katalog) · designs.lua
+         fit.lua · remote.lua · main.lua
+data/    vehicles_auto.json (tarama sonucu — sunucuda oluşur)
 dui/     index.html  (tasarım görselini tam ekran çizen sayfa)
 web/src  engine/ (belge, katman çizimi, araçlar, geçmiş, sıçrama, dolgu, çıkartma)
          three/  (Scene3D, demo araç, UV şablon üretimi) · components/ · store.ts · actions.ts · nui.ts
@@ -49,10 +52,25 @@ sql/     install.sql
 - **Geri yükleme**: `entityCreated` + plaka eşleşmesi (8 sn dener); kaynak yeniden
   başlarsa tüm araçlar taranır.
 
+## 4.5 Araç kataloğu ve canlı önizleme
+- **Tarama** (`client/scanner.lua`): `GetAllVehicleModels()` → her model yerel/görünmez oluşturulur;
+  `GetVehicleLiveryCount`, `GetNumVehicleMods(48)`, doku adı kalıpları `GetTextureResolution` ile
+  denenir. Sonuç `loe_vd:server:scanResult` → `data/vehicles_auto.json` (SaveResourceFile).
+- **Katalog** (`server/catalog.lua`): elle tanımlar + tarama birleşir; destekliler `Config.Vehicles`'a
+  girer. İstemciler livery tanımlarını `loe_vd:server:liveryDefs` ile alır (tarama sonrası
+  `loe_vd:client:defsUpdated` ile yenilenir). Kütüphane listesi stüdyo açılışında latent gider.
+- **Canlı önizleme** (`client/preview.lua`): seçili aracın yerel kopyası oyuncunun önünde,
+  yörünge kamera (`previewCam`), ayrı DUI dokusu modelin **son slotuna** geçici yönlendirilir
+  (`Liveries.override/restore`). NUI 'OYUNDA' modunda çalışma alanı şeffaf; tasarım 1024px webp
+  olarak ~0.65 sn aralıkla gönderilir (`previewImage`). Kamera, şeffaf alanın ekran merkezine
+  göre kaydırılır (`previewOffset`).
+- **UV ızgarası** (`engine/grid.ts`): A1..H8 hücreleri UV tuvalinde ve önizleme dokusunda aynı yerde.
+
 ## 5. Slot sistemi
 `AddReplaceTexture` model başına geçerli → her farklı tasarım modelin ayrı livery slotuna.
 Sunucu slotları global dağıtır (`server/slots.lua`): aynı tasarım aynı slotu paylaşır; boş
-slot yoksa aracı kalmamış slot geri alınır; hiçbiri yoksa takma reddedilir. Kütüphane
+slot yoksa aracı kalmamış slot geri alınır; hiçbiri yoksa takma reddedilir. Dağıtım **sondan
+başa** yapılır (düşük numaralı liveryler oyunda daha sık kullanılır). Kütüphane
 kartında `boş/toplam slot` gösterilir.
 
 ## 6. NUI mimarisi
@@ -81,4 +99,5 @@ aktarmada iç ağ adresleri engellenir ve dosya imzası kontrol edilir; YZ anaht
 - NUI: tarayıcıda (Playwright + demo araç) tüm araçlar, 3D boyama, panel dolgusu, UV,
   kaydet/aç, bas, YZ (sahte), geçmiş test edildi.
 - Lua: Lua 5.4 ile sözdizimi; slot dağıtıcı ve base64 birim testleri.
+- Tarama doku adı kalıbı ve slot dağıtıcı birim testleri.
 - **Oyun içi test henüz yapılmadı** (bkz. ROADMAP "Doğrulanacaklar").
