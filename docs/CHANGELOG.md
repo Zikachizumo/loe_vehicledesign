@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 1.1.1 — 2026-09-29 (hata düzeltmeleri)
+- **Güvenlik:** kaplama takarken eşya artık önce silinir; takma başarısız olursa geri verilir
+  (bekleme sırasında eşyayı taşıyarak çoğaltma açığı kapandı). Sökücü için de aynı.
+- Doku bir kez yüklenemezse artık 15 sn sonra tekrar denenir (önceden kaplama hiç görünmeyebiliyordu).
+- Canlı önizleme: ilk görüntü doku sayfası hazır olmadan gelirse tekrar gönderilir (boş araç sorunu);
+  önizleme slot 1'i kullanır (gerçek kaplamalarla çakışmaz).
+- **Bölünmüş görünüm (OYUNDA):** solda UV tuvalinde boya, sağda gerçek araçta anında gör;
+  kamera aracı sağ alana sığdırır.
+- Tarama düğmesi sunucu olayıyla çalışır (yetki sunucuda); tarama hatasında geçici araç silinir.
+- Stüdyo kapanınca, oyuncu hâlâ noktadaysa `[E]` yazısı geri gelir.
+- Plaka eşleşmesi boşluk/küçük harf farkından etkilenmez (`player_vehicles`).
+- Editör: kaydırıcı değişikliğinden hemen sonra Geri Al'da "İleri Al" kaybolmuyor; ölçeklenmiş
+  yazının metni değişince boyut korunuyor; büyük tasarımlar basılırken kalite otomatik düşürülüyor.
+- İstemci aktarımında sahipsiz veriler 5 dk sonra temizlenir.
+
 ## 1.1.0 — 2026-09-29
 - **Tüm araçlar**: `/kaplamatarama` ile oyundaki tüm araçların otomatik taranması ve kataloğu
   (ad/marka/sınıf/livery sayısı/doku adı tahmini) → `data/vehicles_auto.json`.

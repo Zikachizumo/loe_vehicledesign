@@ -136,14 +136,10 @@ const select: ToolHandler & { wheel?: (dir: number, e: { shift: boolean; ctrl: b
         const jump = Math.hypot(p.x - drag.last.x, p.y - drag.last.y);
         if (e.source === '3d' && jump > size * 0.2) {
           drag.last = p;
-          drag.start = { x: drag.start.x + (p.x - drag.last.x), y: drag.start.y + (p.y - drag.last.y) };
           return;
         }
         l.x += p.x - drag.last.x;
         l.y += p.y - drag.last.y;
-        if (l.type === 'gradient') {
-          /* konumsuz */
-        }
         drag.last = p;
       } else if (drag.kind === 'scale') {
         const m = new DOMMatrix().translateSelf(drag.orig.x, drag.orig.y).rotateSelf(drag.orig.rotation).inverse();

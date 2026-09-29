@@ -45,6 +45,8 @@ local function fill(pattern, name, n)
     return p
 end
 
+local spawned = nil -- hata durumunda temizlenecek gecici arac
+
 local function scanOne(name, pos)
     local hash = joaat(name)
     if not IsModelInCdimage(hash) or not IsModelAVehicle(hash) then return nil end
@@ -78,6 +80,7 @@ local function scanOne(name, pos)
         e.error = 'spawn'
         return e
     end
+    spawned = veh
     SetEntityVisible(veh, false, false)
     SetEntityCollision(veh, false, false)
     FreezeEntityPosition(veh, true)
@@ -126,6 +129,7 @@ local function scanOne(name, pos)
 
     if e.res then e.size = e.res >= 2048 and 2048 or 1024 end
     DeleteEntity(veh)
+    spawned = nil
     SetModelAsNoLongerNeeded(hash)
     return e
 end
@@ -143,6 +147,10 @@ RegisterNetEvent('loe_vd:client:scan', function()
     lib.notify({ title = 'Araç Taraması', description = ('%d model taranacak, bu birkaç dakika sürebilir.'):format(#models), type = 'inform' })
     for i, name in ipairs(models) do
         local ok, e = pcall(scanOne, name, pos)
+        if spawned then
+            if DoesEntityExist(spawned) then DeleteEntity(spawned) end
+            spawned = nil
+        end
         if ok and e then
             out[#out + 1] = e
             if e.method then supported = supported + 1 end

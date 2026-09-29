@@ -14,13 +14,14 @@ let lastGrid = false;
 let sending = false;
 let timer = 0;
 
-export function workspaceOffset(): { x: number; y: number } {
-  const el = document.querySelector('.ws-body');
-  if (!el) return { x: 0, y: 0 };
+/** Arac, seffaf alanin ortasina ve genisligine gore yerlestirilsin (NDC + genislik orani). */
+export function workspaceOffset(): { x: number; y: number; w: number } {
+  const el = document.querySelector('.live-pane') || document.querySelector('.ws-body');
+  if (!el) return { x: 0, y: 0, w: 1 };
   const r = el.getBoundingClientRect();
   const cx = r.left + r.width / 2;
   const cy = r.top + r.height / 2;
-  return { x: (cx / window.innerWidth) * 2 - 1, y: -((cy / window.innerHeight) * 2 - 1) };
+  return { x: (cx / window.innerWidth) * 2 - 1, y: -((cy / window.innerHeight) * 2 - 1), w: r.width / window.innerWidth };
 }
 
 function wanted(): string | null {
@@ -87,7 +88,7 @@ export function initPreviewSync(): () => void {
   const unsub = useStore.subscribe((s, prev) => {
     if (s.visible !== prev.visible || s.vehicle !== prev.vehicle || s.mode !== prev.mode || s.config !== prev.config) void sync();
     if (activeModel && (s.docRev !== prev.docRev || s.grid !== prev.grid)) schedule(s.grid !== prev.grid ? 0 : 650);
-    if (activeModel && s.libraryOpen !== prev.libraryOpen) {
+    if (activeModel && (s.libraryOpen !== prev.libraryOpen || s.liveSplit !== prev.liveSplit)) {
       window.setTimeout(() => void fetchNui('previewOffset', workspaceOffset()), 50);
     }
   });

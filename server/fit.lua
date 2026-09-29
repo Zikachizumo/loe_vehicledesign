@@ -97,11 +97,15 @@ lib.callback.register('loe_vd:server:fit', function(src, slotId, netId)
     if Config.Fit.onlyOwnVehicles and owner ~= cid then
         return { ok = false, message = 'Sadece kendi aracına kaplama takabilirsin' }
     end
+    -- Esyayi ONCE sil (bekleme sirasinda baska yere tasinip kopyalanmasin); takma olmazsa geri ver.
+    if Config.Fit.consumeItem and not exports.ox_inventory:RemoveItem(src, item.name, 1, nil, slotId) then
+        return { ok = false, message = 'Kaplama eşyası bulunamadı' }
+    end
     local slot = Fit.apply(veh, design)
     if not slot then
+        if Config.Fit.consumeItem then exports.ox_inventory:AddItem(src, item.name, 1, meta) end
         return { ok = false, message = 'Bu model için boş kaplama slotu yok, daha sonra tekrar dene' }
     end
-    if Config.Fit.consumeItem then exports.ox_inventory:RemoveItem(src, item.name, 1, nil, slotId) end
 
     local saved = false
     if Config.Fit.persistOwned and owner then
@@ -141,8 +145,11 @@ lib.callback.register('loe_vd:server:remove', function(src, slotId, netId)
     if not item or item.name ~= Config.Items.remover then return { ok = false, message = 'Sökücü bulunamadı' } end
     local veh = resolveVehicle(src, netId, Config.Remove.distance)
     if not veh then return { ok = false, message = 'Araç çok uzakta' } end
+    if Config.Remove.consumeItem and not exports.ox_inventory:RemoveItem(src, item.name, 1, nil, slotId) then
+        return { ok = false, message = 'Sökücü bulunamadı' }
+    end
     local ok, msg = Fit.remove(src, veh, Config.Remove.onlyOwnVehicles)
-    if ok and Config.Remove.consumeItem then exports.ox_inventory:RemoveItem(src, item.name, 1, nil, slotId) end
+    if not ok and Config.Remove.consumeItem then exports.ox_inventory:AddItem(src, item.name, 1) end
     return { ok = ok, message = msg }
 end)
 

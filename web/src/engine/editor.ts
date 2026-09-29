@@ -14,7 +14,7 @@ import {
 import type { Layer, LayerType, SerializedDoc } from './types';
 import { isPositioned, layerMatrix, measureText, renderLayer } from './render';
 import { SPLAT_RES, getSplat } from './splat';
-import { ctx2d, loadImage, makeCanvas, uid } from './util';
+import { ctx2d, dataUrlBytes, loadImage, makeCanvas, uid } from './util';
 
 export interface Pt {
   x: number;
@@ -114,6 +114,7 @@ class Editor {
   }
 
   undo() {
+    this.flushPending(); // bekleyen kaydirici degisikligi once gecmise girsin (redo kaybolmasin)
     const h = this.history;
     if (!this.doc || !h.canUndo) return;
     const cur = h.entries[h.index];
@@ -124,6 +125,7 @@ class Editor {
   }
 
   redo() {
+    if (this.commitTimer) return; // bekleyen degisiklik varken ileri alinacak adim yoktur
     const h = this.history;
     if (!this.doc || !h.canRedo) return;
     h.index++;
@@ -134,6 +136,7 @@ class Editor {
   }
 
   jumpTo(index: number) {
+    this.flushPending();
     while (this.history.index > index && this.history.canUndo) this.undo();
     while (this.history.index < index && this.history.canRedo) this.redo();
   }
@@ -199,10 +202,16 @@ class Editor {
   patch(id: string, patch: Partial<Layer>) {
     const l = this.doc?.layer(id);
     if (!l) return;
+    const textKeys = ['text', 'font', 'size', 'bold', 'italic', 'strokeWidth', 'spacing'];
+    const refit = l.type === 'text' && textKeys.some((k) => k in patch) && !('w' in patch || 'h' in patch);
+    // Kullanicinin tutamacla verdigi olcegi koru: eski dogal kutuya gore oran
+    const before = refit ? measureText(l as Parameters<typeof measureText>[0]) : null;
     Object.assign(l, patch);
     l.rev++;
-    if (l.type === 'text' && ('text' in patch || 'font' in patch || 'size' in patch || 'bold' in patch || 'italic' in patch || 'strokeWidth' in patch || 'spacing' in patch)) {
-      this.refitText(l);
+    if (refit && before) {
+      const after = measureText(l as Parameters<typeof measureText>[0]);
+      l.w = (l.w / Math.max(1, before.w)) * after.w;
+      l.h = (l.h / Math.max(1, before.h)) * after.h;
     }
     this.invalidate();
   }
@@ -223,17 +232,12 @@ class Editor {
     }
   }
 
-  /** Yazi katmaninin kutusunu icerige gore yenile (olcek oranini koru). */
+  /** Yeni yazi katmaninin kutusunu dogal boyutuna ayarla. */
   refitText(l: Layer) {
     if (l.type !== 'text') return;
-    const prev = (l as Layer & { _bw?: number; _bh?: number });
     const base = measureText(l);
-    const sx = prev._bw ? l.w / prev._bw : 1;
-    const sy = prev._bh ? l.h / prev._bh : 1;
-    l.w = base.w * sx;
-    l.h = base.h * sy;
-    Object.defineProperty(l, '_bw', { value: base.w, writable: true, enumerable: false, configurable: true });
-    Object.defineProperty(l, '_bh', { value: base.h, writable: true, enumerable: false, configurable: true });
+    l.w = base.w;
+    l.h = base.h;
   }
 
   remove(id: string) {
@@ -401,11 +405,17 @@ class Editor {
 
   // ---------------- Disa aktar / kaydet ----------------
 
-  exportLivery(): { image: string; thumb: string } | null {
+  /** Oyuna gidecek gorsel. Sinir asilirsa kaliteyi adim adim dusurur. */
+  exportLivery(maxBytes = Infinity): { image: string; thumb: string } | null {
     const doc = this.doc;
     if (!doc) return null;
     doc.compose();
-    const image = doc.out.toDataURL('image/webp', 0.9);
+    let image = '';
+    for (const q of [0.9, 0.8, 0.7, 0.6, 0.5]) {
+      image = doc.out.toDataURL('image/webp', q);
+      if (dataUrlBytes(image) <= maxBytes) break;
+    }
+    if (dataUrlBytes(image) > maxBytes) return null;
     return { image, thumb: this.thumbnail() };
   }
 

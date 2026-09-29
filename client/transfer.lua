@@ -13,7 +13,7 @@ local counter = 0
 RegisterNetEvent('loe_vd:rx', function(id, index, total, chunk)
     local r = received[id]
     if not r then
-        r = { parts = {}, got = 0, total = total }
+        r = { parts = {}, got = 0, total = total, t = GetGameTimer() }
         received[id] = r
     end
     if not r.parts[index] then
@@ -57,6 +57,17 @@ function Transfer.await(id, timeoutMs)
     received[id] = nil
     return nil, 'timeout'
 end
+
+-- Zaman asimindan sonra gelen / kimsenin beklemedigi aktarimlari bellekte tutma
+CreateThread(function()
+    while true do
+        Wait(60000)
+        local now = GetGameTimer()
+        for id, r in pairs(received) do
+            if r.t and now - r.t > 300000 then received[id] = nil end
+        end
+    end
+end)
 
 local NUI_CHUNK = 256 * 1024
 function Transfer.toNui(id, data)

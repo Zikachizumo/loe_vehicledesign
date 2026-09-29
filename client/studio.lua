@@ -3,6 +3,7 @@
 ]]
 
 local isOpen = false
+local insideStudio = nil -- oyuncunun icinde durdugu studyo noktasi (kapaninca [E] yazisini geri getirmek icin)
 local uploads = {} -- NUI'den parca parca gelen buyuk veri
 local MAX_UPLOAD = 24 * 1024 * 1024
 
@@ -41,6 +42,7 @@ local function closeStudio()
     SendNUIMessage({ action = 'close' })
     DisplayRadar(true)
     TriggerServerEvent('loe_vd:server:closed')
+    if insideStudio then lib.showTextUI(('[E] %s'):format(insideStudio.label), { icon = 'paint-roller' }) end
 end
 
 exports('OpenStudio', function() openStudio(0) end)
@@ -91,9 +93,13 @@ CreateThread(function()
         else
             local point = lib.points.new({ coords = st.coords, distance = st.radius or 2.5 })
             function point:onEnter()
-                if jobOk(st.jobs) then lib.showTextUI(('[E] %s'):format(st.label), { icon = 'paint-roller' }) end
+                if jobOk(st.jobs) then
+                    insideStudio = st
+                    if not isOpen then lib.showTextUI(('[E] %s'):format(st.label), { icon = 'paint-roller' }) end
+                end
             end
             function point:onExit()
+                if insideStudio == st then insideStudio = nil end
                 lib.hideTextUI()
             end
             function point:nearby()
@@ -165,7 +171,7 @@ RegisterNUICallback('aiGenerate', function(d, cb) relayDownload('loe_vd:server:a
 -- ---------------- Canli onizleme kopruleri ----------------
 RegisterNUICallback('previewStart', function(d, cb)
     local ok, err = Preview.start(d and d.model)
-    if ok and d.offset then Preview.offset(d.offset.x, d.offset.y) end
+    if ok and d.offset then Preview.offset(d.offset.x, d.offset.y, d.offset.w) end
     cb({ ok = ok == true, error = err })
 end)
 RegisterNUICallback('previewStop', function(_, cb)
@@ -177,7 +183,7 @@ RegisterNUICallback('previewCam', function(d, cb)
     cb({ ok = true })
 end)
 RegisterNUICallback('previewOffset', function(d, cb)
-    Preview.offset(d.x, d.y)
+    Preview.offset(d.x, d.y, d.w)
     cb({ ok = true })
 end)
 RegisterNUICallback('previewImage', function(d, cb)
@@ -188,7 +194,7 @@ end)
 RegisterNUICallback('scan', function(_, cb)
     cb({ ok = true })
     closeStudio()
-    ExecuteCommand(Config.Scan.command)
+    TriggerServerEvent('loe_vd:server:requestScan') -- yetki sunucuda kontrol edilir
 end)
 
 AddEventHandler('onResourceStop', function(res)

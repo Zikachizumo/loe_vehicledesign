@@ -13,7 +13,8 @@ local DUI_URL = ('https://cfx-nui-%s/dui/index.html'):format(GetCurrentResourceN
 
 local st = nil -- { model, def, slot, veh, cam }
 local dui, texName, duiCounter = nil, nil, 0
-local yaw, pitch, dist = 35.0, 10.0, 6.5
+local yaw, pitch = 35.0, 10.0
+local baseDist, zoom, distMul = 6.5, 1.0, 1.0 -- model boyu * kullanici yakinlastirmasi * alan darligi
 local offX, offY = 0.0, 0.0 -- seffaf alanin ekran merkezine gore kaymasi (NDC)
 local PAINT_TYPE = { gloss = 0, metallic = 1, pearl = 2, matte = 3, brushed = 4, chrome = 5 }
 
@@ -26,6 +27,7 @@ local function ensureDui()
     duiCounter = duiCounter + 1
     texName = ('prev_%d'):format(duiCounter)
     CreateRuntimeTextureFromDuiHandle(ptxd, texName, GetDuiHandle(dui))
+    Wait(500) -- sayfanin mesaj dinleyicisi hazir olsun
 end
 
 local function updateCam()
@@ -34,6 +36,7 @@ local function updateCam()
     local min, max = GetModelDimensions(GetEntityModel(veh))
     local center = GetOffsetFromEntityInWorldCoords(veh, 0.0, (min.y + max.y) / 2, (min.z + max.z) / 2)
     -- yaw 0 = aracin onu, 90 = sol yan, 180 = arka (aracin yonune gore)
+    local dist = baseDist * zoom * distMul
     local ry, rp = math.rad(yaw + GetEntityHeading(veh) + 180.0), math.rad(pitch)
     local dir = vec3(math.cos(rp) * math.sin(ry), -math.cos(rp) * math.cos(ry), math.sin(rp))
     local pos = center + dir * dist
@@ -98,7 +101,8 @@ function Preview.start(model)
     SetVehicleColours(veh, 111, 111) -- beyaz alt boya
 
     ensureDui()
-    local slot = def.slots
+    -- Sunucu gercek tasarimlari SONDAN basa dagitir; onizleme cakismasin diye ilk slotu kullan.
+    local slot = 1
     Liveries.override(model, slot, PTXD, texName)
     Liveries.applyIndex(veh, def, slot)
 
@@ -107,7 +111,8 @@ function Preview.start(model)
     st = { model = model, def = def, slot = slot, veh = veh, cam = cam }
     Preview.vehicle = veh
     local _, max = GetModelDimensions(hash)
-    dist = math.max(4.5, max.y * 2.6)
+    baseDist = math.max(4.5, max.y * 2.6)
+    zoom = 1.0
     yaw, pitch = 35.0, 10.0
     updateCam()
     RenderScriptCams(true, true, 600, true, true)
@@ -128,6 +133,14 @@ end
 function Preview.image(data, paint)
     if not st or not dui then return end
     Liveries.sendToDui(dui, data)
+    -- Ilk gorsel sayfa yuklenmeden gelirse kaybolmasin: bir kez daha gonder
+    if not st.sentOnce then
+        st.sentOnce = true
+        local cur = st
+        SetTimeout(1500, function()
+            if st == cur and dui then Liveries.sendToDui(dui, data) end
+        end)
+    end
     if type(paint) == 'table' and type(paint.color) == 'string' then
         local r, g, b = paint.color:match('^#(%x%x)(%x%x)(%x%x)$')
         if r then
@@ -137,11 +150,11 @@ function Preview.image(data, paint)
     end
 end
 
-function Preview.cam(dx, dy, zoom)
+function Preview.cam(dx, dy, dz)
     if not st then return end
     yaw = (yaw + (dx or 0) * 0.35) % 360
     pitch = math.max(-5.0, math.min(70.0, pitch + (dy or 0) * 0.25))
-    if zoom and zoom ~= 0 then dist = math.max(2.5, math.min(16.0, dist * (1 + zoom * 0.1))) end
+    if dz and dz ~= 0 then zoom = math.max(0.4, math.min(2.5, zoom * (1 + dz * 0.1))) end
     updateCam()
 end
 
@@ -153,8 +166,11 @@ function Preview.view(name)
     updateCam()
 end
 
-function Preview.offset(x, y)
+function Preview.offset(x, y, w)
     offX, offY = tonumber(x) or 0.0, tonumber(y) or 0.0
+    -- Dar alanda (bolunmus gorunum) araci sigdirmak icin uzaklas
+    local width = tonumber(w) or 0.66
+    distMul = math.max(1.0, 0.72 / math.max(width, 0.2))
     updateCam()
 end
 

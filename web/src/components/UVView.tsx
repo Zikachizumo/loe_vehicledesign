@@ -319,8 +319,8 @@ export function UVView({ active }: { active: boolean }) {
     <div className="uvview" style={{ display: active ? undefined : 'none' }}>
       <div className="uv-canvas" ref={wrap} style={{ cursor: cursorFor(tool) }}>
         <canvas ref={cv} />
-        {!runtime.template && vehicle && !vehicle.glb && !vehicle.demo && !vehicle.uv && (
-          <div className="uv-note">UV şablonu tanımlı değil — tasarım yine de doku piksellerine uygulanır.</div>
+        {!runtime.template && !grid && vehicle && !vehicle.glb && !vehicle.demo && !vehicle.uv && (
+          <div className="uv-note">UV şablonu yok — yerleşim için IZGARA'yı aç</div>
         )}
       </div>
       <div className="uv-bar">

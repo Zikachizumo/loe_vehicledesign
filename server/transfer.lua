@@ -10,7 +10,7 @@ Transfer = {}
 local incoming = {} -- [src] = { [id] = { parts, got, total, bytes, t } }
 local MAX_BYTES = math.max(Config.Limits.maxProjectBytes, Config.Limits.maxImageBytes) + 256 * 1024
 local MAX_CHUNKS = math.ceil(MAX_BYTES / Config.Transfer.chunkSize) + 2
-local MAX_CONCURRENT = 4
+local MAX_CONCURRENT = 3
 local TIMEOUT = 120 -- sn
 
 RegisterNetEvent('loe_vd:tx', function(id, index, total, chunk)

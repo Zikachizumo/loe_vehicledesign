@@ -56,7 +56,7 @@ end
 
 --- Plaka player_vehicles tablosunda kayitli mi? Kayitliysa sahibinin citizenid'si doner.
 function Bridge.vehicleOwner(plate)
-    local ok, row = pcall(MySQL.single.await, 'SELECT citizenid FROM player_vehicles WHERE plate = ? LIMIT 1', { plate })
+    local ok, row = pcall(MySQL.single.await, 'SELECT citizenid FROM player_vehicles WHERE TRIM(UPPER(plate)) = ? LIMIT 1', { plate })
     if ok and row then return row.citizenid end
     return nil
 end

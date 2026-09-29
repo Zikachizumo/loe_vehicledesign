@@ -1954,9 +1954,22 @@ select {
 .liveview {
   position: absolute;
   inset: 0;
-  cursor: grab;
-  &:active {
-    cursor: grabbing;
+  display: flex;
+  .live-uv {
+    position: relative;
+    width: 48%;
+    min-width: 380px;
+    background: #070709;
+    border-right: 1px solid var(--accent-line);
+  }
+  .live-pane {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    cursor: grab;
+    &:active {
+      cursor: grabbing;
+    }
   }
   .model-tag,
   .view-bar {

@@ -86,6 +86,7 @@ interface State {
   pendingImage: string | null; // yerlestirilmeyi bekleyen gorsel (gorsel araci)
   template: { show: boolean; opacity: number };
   grid: boolean; // UV izgarasi yardimcisi (UV + canli onizleme)
+  liveSplit: boolean; // OYUNDA modunda solda UV tuvali (boyama), sagda gercek arac
   onlySupported: boolean; // kutuphanede sadece kaplama destekleyenler
   cloneSource: { x: number; y: number } | null;
 }
@@ -134,6 +135,7 @@ export const useStore = create<State>(() => ({
   pendingImage: null,
   template: { show: true, opacity: 0.85 },
   grid: false,
+  liveSplit: true,
   onlySupported: true,
   cloneSource: null,
 }));

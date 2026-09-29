@@ -54,6 +54,7 @@ local function openPayload(src)
             maxLayers = Config.Limits.maxLayers,
             maxProjectBytes = Config.Limits.maxProjectBytes,
             maxImportBytes = Config.Limits.maxImportBytes,
+            maxImageBytes = Config.Limits.maxImageBytes,
             maxTextLength = Config.Limits.maxTextLength,
         },
     }
@@ -83,6 +84,13 @@ end)
 
 AddEventHandler('playerDropped', function()
     sessions[source] = nil
+end)
+
+-- Studyo kutuphanesindeki "TUM ARACLARI TARA" dugmesi (yetki burada kontrol edilir)
+RegisterNetEvent('loe_vd:server:requestScan', function()
+    local src = source
+    if not IsPlayerAceAllowed(src, 'command.' .. Config.Scan.command) then return end
+    TriggerClientEvent('loe_vd:client:scan', src)
 end)
 
 local busy = {}

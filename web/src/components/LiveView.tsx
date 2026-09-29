@@ -3,6 +3,7 @@ import { set, useStore } from '../store';
 import { T } from '../i18n';
 import { fetchNui, isEnvBrowser } from '../nui';
 import { Icon } from './Icons';
+import { UVView } from './UVView';
 
 const VIEWS = ['three', 'front', 'side', 'rear', 'other', 'top'] as const;
 
@@ -10,6 +11,7 @@ const VIEWS = ['three', 'front', 'side', 'rear', 'other', 'top'] as const;
 export function LiveView({ active }: { active: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const grid = useStore((s) => s.grid);
+  const split = useStore((s) => s.liveSplit);
   const vehicle = useStore((s) => s.vehicle);
   const inGame = !isEnvBrowser();
 
@@ -62,7 +64,13 @@ export function LiveView({ active }: { active: boolean }) {
 
   if (!active) return null;
   return (
-    <div className="liveview" ref={ref}>
+    <div className={`liveview ${split ? 'split' : ''}`}>
+      {split && (
+        <div className="live-uv">
+          <UVView active />
+        </div>
+      )}
+      <div className="live-pane" ref={ref}>
       {vehicle && (
         <div className="model-tag">
           <small>{vehicle.brand ?? ''}</small>
@@ -79,7 +87,7 @@ export function LiveView({ active }: { active: boolean }) {
       )}
       <div className="view-bar">
         <span className="hint">
-          <Icon name="camera" size={13} /> {T.ws.liveHint}
+          <Icon name="camera" size={13} /> {split ? T.ws.liveHintSplit : T.ws.liveHint}
         </span>
         <div className="views">
           {VIEWS.map((v) => (
@@ -90,7 +98,11 @@ export function LiveView({ active }: { active: boolean }) {
           <button className={grid ? 'on' : ''} onClick={() => set({ grid: !grid })}>
             <Icon name="grid" size={12} /> {T.ws.grid}
           </button>
+          <button className={split ? 'on' : ''} title={T.ws.splitTip} onClick={() => set({ liveSplit: !split })}>
+            <Icon name="uv" size={12} /> {T.ws.split}
+          </button>
         </div>
+      </div>
       </div>
     </div>
   );

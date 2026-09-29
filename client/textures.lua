@@ -103,6 +103,12 @@ end
 --- Tasarim dokusunu yukle (zaten yukluyse onu dondur).
 function Liveries.load(id, size)
     local t = textures[id]
+    if t and t.state == 'failed' and GetGameTimer() - (t.failedAt or 0) > 15000 then
+        -- gecici hata (ag/zaman asimi): kaydi at, yeniden iste
+        if t.dui then DestroyDui(t.dui) end
+        textures[id] = nil
+        t = nil
+    end
     if t then
         t.lastSeen = GetGameTimer()
         return t
@@ -113,12 +119,12 @@ function Liveries.load(id, size)
     CreateThread(function()
         local res = lib.callback.await('loe_vd:server:getDesign', false, id)
         if not res or not res.ok then
-            t.state = 'failed'
+            t.state, t.failedAt = 'failed', GetGameTimer()
             return
         end
         local data = Transfer.await(res.transfer, 120000)
         if not data or textures[id] ~= t then
-            t.state = 'failed'
+            t.state, t.failedAt = 'failed', GetGameTimer()
             return
         end
         local dui = CreateDui(DUI_URL, size, size)

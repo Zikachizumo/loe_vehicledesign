@@ -4,7 +4,6 @@ import { editor } from './engine/editor';
 import { registerFont } from './engine/doc';
 import { awaitDownload, fetchNui, uploadToLua } from './nui';
 import type { PrintedSummary, ProjectSummary, VehicleDef } from './types';
-import { dataUrlBytes } from './engine/util';
 
 interface OkRes {
   ok: boolean;
@@ -130,11 +129,9 @@ export async function printLivery(label: string) {
   editor.flushPending();
   set({ busy: { ...s.busy, print: true } });
   try {
-    const out = editor.exportLivery();
-    if (!out) return;
-    const max = s.config?.limits.maxProjectBytes ?? 12 * 1024 * 1024;
-    if (dataUrlBytes(out.image) > max) {
-      toast(T.toast.tooLarge, 'err');
+    const out = editor.exportLivery(s.config?.limits.maxImageBytes ?? 6 * 1024 * 1024);
+    if (!out) {
+      toast(`${T.toast.tooLarge} — bazı görsel katmanlarını küçült veya kaldır`, 'err');
       return;
     }
     // zarf: onizleme + envanter ikonu + kaplama gorseli

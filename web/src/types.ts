@@ -59,6 +59,6 @@ export interface OpenPayload {
   price: number;
   currency: string;
   aiEnabled: boolean;
-  limits: { maxLayers: number; maxProjectBytes: number; maxImportBytes: number; maxTextLength: number };
+  limits: { maxLayers: number; maxProjectBytes: number; maxImportBytes: number; maxTextLength: number; maxImageBytes?: number };
   fonts: string[];
 }
