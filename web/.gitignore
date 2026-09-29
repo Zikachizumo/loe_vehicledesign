@@ -1,0 +1,3 @@
+node_modules
+# build/ BILEREK commit edilir: sunucuda Bun/Node yok, fxmanifest web/build/index.html'i servis eder.
+.DS_Store
