@@ -28,5 +28,17 @@ ServerConfig.Import = {
     allowedHosts = {},
 }
 
+-- Magaza satisi sonrasi (istege bagli): gelir bir sirket/meslek kasasina gitsin vb.
+-- Ornek (Renewed-Banking): function(src, sale) exports['Renewed-Banking']:addAccountMoney('bennys', sale.price) end
+ServerConfig.OnPurchase = nil
+
+-- Tebex paket komutlari (SUNUCU KONSOLUNDA calisir; oyuncular calistiramaz).
+-- Paket satin alma komutu :  loe_tebex_kaplama {transaction} TASARIMKODU [TASARIMKODU2 ...]
+-- Iade/chargeback komutu  :  loe_tebex_iade {transaction}
+ServerConfig.Tebex = {
+    grantCommand = 'loe_tebex_kaplama',
+    revokeCommand = 'loe_tebex_iade',
+}
+
 -- Discord webhook (basilan kaplamalari loglamak icin). Bos = kapali.
 ServerConfig.Webhook = GetConvar('loe_vd_webhook', '')

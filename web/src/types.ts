@@ -42,6 +42,11 @@ export interface PrintedSummary {
   model: string;
   thumb?: string;
   created: number;
+  designer?: string;
+  price?: number;
+  published?: boolean;
+  sales?: number;
+  tebex?: boolean; // gercek para (Tebex) ile satiliyor
 }
 
 export interface OpenPayload {
@@ -58,6 +63,8 @@ export interface OpenPayload {
   inGame?: boolean;
   price: number;
   currency: string;
+  shopPrice?: number; // magazada sat icin onerilen fiyat
+  tebex?: { enabled: boolean; command: string }; // gercek para satisi (Tebex paket komutu)
   aiEnabled: boolean;
   limits: { maxLayers: number; maxProjectBytes: number; maxImportBytes: number; maxTextLength: number; maxImageBytes?: number };
   fonts: string[];

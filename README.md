@@ -2,11 +2,13 @@
 
 **Legends of Empire RP** için oyun içi **3D araç kaplama (livery) editörü** — FiveM / **Qbox**.
 
-Oyuncu stüdyoda aracını seçer, 3D model üzerinde doğrudan (veya UV şablonunda hassas)
-boyar, kaplamayı **modele kilitli bir envanter eşyası** olarak basar, sonra eşyayı aracın
-yanında kullanarak kaplamayı takar. Kayıtlı araçlarda kaplama plakaya **kalıcı** kaydedilir.
+**Tasarım ekibi (yetkililer)** stüdyoda aracı seçer, 3D model üzerinde doğrudan (veya UV
+şablonunda hassas) boyar ve kaplamayı **fiyat vererek mağazaya ekler**. **Oyuncular stüdyoya
+erişemez**: aracını Benny's'teki **Kaplama Mağazası**'na getirir, araca uyan kaplamaları görür,
+**önizler** ve **parayla satın alır** — kaplama aracına takılır. Kayıtlı araçlarda kaplama plakaya
+**kalıcı** kaydedilir.
 
-> Akış: **01 SEÇ → 02 TASARLA → 03 TAK → 04 SÜR**
+> Akış: **Yetkili: SEÇ → TASARLA → MAĞAZAYA EKLE** · **Oyuncu: MAĞAZA → ÖNİZLE → SATIN AL → SÜR**
 
 ## Özellikler
 
@@ -22,7 +24,14 @@ yanında kullanarak kaplamayı takar. Kayıtlı araçlarda kaplama plakaya **kal
 - **Katmanlar**: sürükle-bırak sıralama, göster/gizle, kilit, çoğalt, sil, ad değiştir,
   opaklık, 16 karışım modu, ayna, konum/boyut/döndürme.
 - **Geri al / ileri al** (raster değişiklikleri yama olarak tutulur, bellek dostu).
-- **Projeler**: kaydet / aç / sil (Tasarımlarım), basılanları **tekrar bas**.
+- **Projeler**: kaydet / aç / sil (Tasarımlarım); basılanların **fiyatını değiştir / mağazadan kaldır**,
+  satış sayısını gör, istersen eşya olarak al.
+- **Kaplama Mağazası** (oyuncular): araca uyan satıştaki kaplamalar, 15 sn **önizleme** (sadece
+  alıcı görür), onaylı satın alma (banka → nakit). Başarısız takmada para **iade** edilir.
+  `mode = 'fit'` (hemen takılır) veya `'item'` (envantere eşya verilir).
+- **Gerçek para satışı (Tebex)**: tasarım "GERÇEK PARA (TEBEX)" olarak işaretlenir; oyuncu Tebex'ten
+  alır, e-postadaki kodu oyunda girer, kaplama karakterine bağlanır (devredilemez) ve ücretsiz takılır.
+  İade/chargeback otomatik geri alır. Kurallar ve kurulum: [`docs/GERCEK_PARA_TEBEX.md`](docs/GERCEK_PARA_TEBEX.md)
 - **Oyunda**: tasarım DUI → runtime texture → `AddReplaceTexture` ile modelin livery slotuna
   basılır; sunucu slotları global dağıtır, böylece aynı modelde aynı anda farklı tasarımlar görünür.
 - Kalıcılık: `player_vehicles`'ta kayıtlı araçlarda plaka bazlı; garajdan çıkınca otomatik geri gelir.
@@ -61,11 +70,23 @@ yanında kullanarak kaplamayı takar. Kayıtlı araçlarda kaplama plakaya **kal
 
 ## Kullanım
 
-- Stüdyo: haritadaki **LoE Tasarım Stüdyosu** (varsayılan Benny's) → `[E]`.
-- Yetkili: `/kaplamastudyo` (her yerden açar), `/kaplamasok` (en yakın araçtaki kaplamayı kaldırır),
-  `/kaplamatarama` (tüm araçları tarar).
-- Oyuncu: envanterdeki **Araç Kaplaması** eşyasını aracın yanında kullan.
-  **Kaplama Sökücü** ile kaplama sökülür.
+- **Tasarım (sadece yetkili):** `/kaplamastudyo` → tasarla → **KAPLAMAYI BAS** → "MAĞAZADA SAT" açık +
+  satış fiyatı → mağazaya eklenir. Fiyat değiştirmek / kaldırmak: Kütüphane → TASARIMLARIM →
+  kartta **MAĞAZA**.
+- **Yetki:** stüdyoyu `command.kaplamastudyo` izni olan açar (varsayılan `group.admin`).
+  Admin olmayan bir tasarımcıya vermek için `server.cfg`:
+  `add_ace identifier.fivem:123456 command.kaplamastudyo allow`
+- **Oyuncu:** aracını haritadaki **LoE Kaplama Mağazası**'na (Benny's) getir → `[E]` → kaplama seç →
+  Önizle / Satın al. (İçindeyken veya yanında durarak.)
+- **Gerçek para:** Tebex kurulumu, kurallar (sadece Tebex, marka/logo yok, coin yok) →
+  [`docs/GERCEK_PARA_TEBEX.md`](docs/GERCEK_PARA_TEBEX.md). Oyuncu kodu: `/kaplamakod tbx-...`
+- Diğer yetkili komutları: `/kaplamasok` (en yakın araçtaki kaplamayı kaldırır), `/kaplamatarama`
+  (tüm araçları tarar).
+- **Kaplama Sökücü** eşyası ile kaplama sökülür; `'item'` modunda satılan **Araç Kaplaması** eşyası
+  aracın yanında kullanılarak takılır.
+- Ayarlar: `config/shared.lua` → `Config.Shops` (konum/blip), `Config.Shop` (mode, onlyOwnVehicles,
+  accounts, previewSeconds, defaultPrice). Satış kancası: `config/server.lua` → `ServerConfig.OnPurchase`
+  (örn. tasarımcıya / şirkete pay).
 
 ## Dışa açık API
 
@@ -77,7 +98,8 @@ exports.loe_vehicledesign:RestoreDesign(vehicle)           -- plakadan geri yük
 exports.loe_vehicledesign:GetVehicleDesign(vehicle)        -- designId | nil
 exports.loe_vehicledesign:OpenStudioFor(source)
 -- client
-exports.loe_vehicledesign:OpenStudio()
+exports.loe_vehicledesign:OpenStudio()                     -- yetkisizde sunucu reddeder
+exports.loe_vehicledesign:OpenShop()                       -- kaplama mağazası menüsü (mağaza noktasında)
 exports.loe_vehicledesign:IsStudioOpen()
 -- client: kendi araç menün (G tuşu vb.) için — ayrıntı: docs/G_MENUSU.md
 exports.loe_vehicledesign:OpenLiveryMenu(vehicle)          -- hazır "Kaplama" alt menüsü

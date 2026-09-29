@@ -13,6 +13,8 @@ export const MOCK_OPEN: OpenPayload = {
   player: { name: 'Zika Chizumo', initials: 'ZC', role: 'Tasarımcı' },
   price: 0,
   currency: '$',
+  shopPrice: 25000,
+  tebex: { enabled: true, command: 'loe_tebex_kaplama' },
   aiEnabled: true,
   fonts: ['Impact', 'Arial Black', 'Bahnschrift', 'Segoe UI', 'Georgia', 'Courier New', 'Trebuchet MS', 'Verdana'],
   limits: { maxLayers: 80, maxProjectBytes: 12 * 1024 * 1024, maxImportBytes: 8 * 1024 * 1024, maxTextLength: 48 },
@@ -91,14 +93,44 @@ export function installMocks() {
     return { ok: true };
   });
   registerMock('print', async (d) => {
-    const { uploadId, label, model } = d as { uploadId: string; label: string; model: string };
+    const { uploadId, label, model, publish, shopPrice, tebex } = d as {
+      uploadId: string;
+      label: string;
+      model: string;
+      publish?: boolean;
+      shopPrice?: number;
+      tebex?: boolean;
+    };
     const thumb = (uploads.get(uploadId) ?? []).join('').split('\n')[0];
     uploads.delete(uploadId);
     await new Promise((r) => setTimeout(r, 900));
-    printed.unshift({ id: Math.random().toString(36).slice(2, 8).toUpperCase(), label, model, thumb, created: Date.now() / 1000 });
-    return { ok: true, message: `"${label}" basıldı — envanterine eklendi` };
+    const price = tebex ? 0 : Math.max(0, Math.floor(shopPrice ?? 0));
+    const id = Math.random().toString(36).slice(2, 10).toUpperCase();
+    printed.unshift({
+      id,
+      label,
+      model,
+      thumb,
+      created: Date.now() / 1000,
+      designer: 'Test Tasarımcı',
+      price,
+      published: !!publish,
+      sales: 0,
+      tebex: !!tebex,
+    });
+    if (tebex) return { ok: true, message: `"${label}" mağazaya eklendi (Tebex). Komut: loe_tebex_kaplama {transaction} ${id}` };
+    return { ok: true, message: publish ? `"${label}" mağazaya eklendi ($${price})` : `"${label}" basıldı — envanterine eklendi` };
   });
   registerMock('reprint', () => ({ ok: true, message: 'Kaplama tekrar basıldı' }));
+  registerMock('setListing', (d) => {
+    const { id, price, published, tebex } = d as { id: string; price: number; published: boolean; tebex?: boolean };
+    const p = printed.find((x) => x.id === id);
+    if (!p) return { ok: false, error: 'Tasarım bulunamadı' };
+    p.price = tebex ? 0 : price;
+    p.published = published;
+    p.tebex = !!tebex;
+    return { ok: true, message: published ? `Mağazada: ${tebex ? 'Tebex (gerçek para)' : `$${price}`}` : 'Mağazadan kaldırıldı' };
+  });
   registerMock('importUrl', () => ({ ok: false, error: 'Tarayıcı modunda sunucu vekili yok' }));
   registerMock('aiGenerate', async () => {
     const transfer = `ai${Date.now()}`;

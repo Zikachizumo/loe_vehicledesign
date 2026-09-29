@@ -3,11 +3,12 @@
 > Projenin **tek teknik referansı**. Yeni bir sohbet/geliştirici bunu okuyunca kaldığı yerden
 > devam edebilmeli. Değişiklikler: [`CHANGELOG.md`](./CHANGELOG.md) · Plan: [`ROADMAP.md`](./ROADMAP.md)
 
-Son güncelleme: 2026-09-29 (v1.1)
+Son güncelleme: 2026-09-29 (v1.3)
 
 ## 1. Amaç
-Legends of Empire RP (Qbox) için oyun içi 3D kaplama editörü: tasarla → modele kilitli eşya
-olarak bas → aracın yanında kullanarak tak → (kayıtlı araçta) plakaya kalıcı kaydet.
+Legends of Empire RP (Qbox) için oyun içi 3D kaplama editörü + **kaplama mağazası**.
+Tasarım ekibi (yetkili) tasarlar ve fiyatla mağazaya ekler; **oyuncular stüdyoya erişemez**,
+mağazada önizleyip parayla satın alır → araca takılır → (kayıtlı araçta) plakaya kalıcı kaydedilir.
 
 ## 2. Teknolojiler
 | Katman | Teknoloji |
@@ -35,7 +36,22 @@ sql/     install.sql
 ```
 
 ## 4. Veri akışı
-- **Aç**: `[E]` → `loe_vd:server:open` (mesafe+meslek doğrulanır, **oturum** açılır) → NUI `open`.
+- **Aç**: `/kaplamastudyo` (veya `Config.Studios` noktası) → `loe_vd:server:open` (`Bridge.isDesigner` =
+  `command.kaplamastudyo` ace + mesafe/meslek doğrulanır, **oturum** açılır) → NUI `open`.
+  `guarded` uçları her istekte oturum **ve** yetkiyi yeniden kontrol eder.
+- **Mağaza** (`server/shop.lua`, `client/shop.lua`): `Config.Shops` noktası → `loe_vd:server:shopList(netId)`
+  (yakınlık, araç mesafesi, model → `published = 1` tasarımlar, latent) → ox_lib context menü.
+  Önizleme: `Liveries.previewOn` (slot 1 geçici yönlendirme, sadece alıcının ekranında).
+  `loe_vd:server:shopBuy(id, netId)`: hız sınırı → yayında mı → `'fit'`: `Fit.fitDesign`
+  (`before` = para çek, `rollback` = iade) / `'item'`: para çek → `Designs.giveDesignItem` →
+  `sales + 1`, log, `ServerConfig.OnPurchase`.
+- **Yayın**: bas isteğinde `publish/shopPrice/giveItem/tebex`; sonradan `loe_vd:server:setListing(id, price, published, tebex)`.
+- **Gerçek para** (`server/tebex.lua`, sadece Tebex — PLA): konsol komutu `loe_tebex_kaplama {transaction} KOD...`
+  → `loe_vd_purchases (tx, design_id, status=pending)`. Oyuncu `loe_vd:server:redeem` / `/kaplamakod` →
+  tek UPDATE ile `redeemed` + `citizenid` → `loe_vd_owned (citizenid, design_id)`. Sahip olunan tasarım
+  mağazada `Shop.fitOwned` ile ücretsiz, sadece kendi aracına takılır (eşya YOK → devredilemez).
+  `loe_tebex_iade {transaction}` → `revoked`, sahiplik silinir, `Fit.revokeDesign` araçlardan kaldırır.
+  Kurallar: `docs/GERCEK_PARA_TEBEX.md`.
 - **Büyük veri**: NUI→Lua `upload` (256KB parça) → Lua→sunucu `loe_vd:tx` (latent, 128KB) →
   `Transfer.take`. Ters yön: `Transfer.push` → `loe_vd:rx` → NUI `download` parçaları.
   Zarf biçimi: kaydet = `önizleme\nJSON`, bas = `önizleme\nikon\ngörsel`.
@@ -85,7 +101,9 @@ kartında `boş/toplam slot` gösterilir.
   UV şablonu ve **ada maskesi** (panel dolgusu) GLB geometrisinden üretilir.
 
 ## 7. Güvenlik
-Sunucu-otoriter: tüm istekler oturum ister; eşya slotu/metadata sunucuda okunur; araç
+Sunucu-otoriter: stüdyo sadece `command.kaplamastudyo` izinlilere; tüm stüdyo istekleri oturum + yetki ister;
+mağazada fiyat/yayın durumu sunucudaki satırdan okunur (istemci fiyatı gönderemez), para önce çekilir,
+başarısızlıkta iade; eşya slotu/metadata sunucuda okunur; araç
 mesafe + model kontrolü; boyut sınırları; oyuncu başına eş zamanlı aktarım sınırı; URL içe
 aktarmada iç ağ adresleri engellenir ve dosya imzası kontrol edilir; YZ anahtarı convar'da.
 

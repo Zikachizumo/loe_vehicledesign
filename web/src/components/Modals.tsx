@@ -3,7 +3,18 @@ import { S, set, useStore } from '../store';
 import { T } from '../i18n';
 import { editor } from '../engine/editor';
 import { Icon } from './Icons';
-import { closeStudio, deleteProject, importFromUrl, newProject, printLivery, saveProject, selectVehicle } from '../actions';
+import {
+  closeStudio,
+  copyText,
+  deleteProject,
+  importFromUrl,
+  newProject,
+  printLivery,
+  saveProject,
+  selectVehicle,
+  setListing,
+} from '../actions';
+import { Seg, Toggle } from './ui';
 
 export function Modals() {
   const modal = useStore((s) => s.modal);
@@ -58,6 +69,17 @@ export function Modals() {
       )}
       {modal.type === 'save' && <SaveModal close={close} />}
       {modal.type === 'print' && <PrintModal close={close} />}
+      {modal.type === 'listing' && (
+        <ListingModal
+          key={modal.id}
+          id={modal.id}
+          label={modal.label}
+          price={modal.price}
+          published={modal.published}
+          tebex={modal.tebex}
+          close={close}
+        />
+      )}
     </div>
   );
 }
@@ -160,12 +182,91 @@ function SaveModal({ close }: { close: () => void }) {
   );
 }
 
+function money(n: number) {
+  const cur = S().config?.currency ?? '$';
+  return `${cur}${Math.max(0, Math.floor(n) || 0).toLocaleString('tr-TR')}`;
+}
+
+function PriceInput({ value, onChange, autoFocus }: { value: number; onChange: (v: number) => void; autoFocus?: boolean }) {
+  return (
+    <label className="field">
+      <span>{T.modal.shopPrice}</span>
+      <div className="price-input">
+        <em>{S().config?.currency ?? '$'}</em>
+        <input
+          className="txt block"
+          inputMode="numeric"
+          autoFocus={autoFocus}
+          value={value ? String(value) : ''}
+          placeholder="0"
+          onChange={(e) => onChange(Math.min(100000000, Number(e.target.value.replace(/\D/g, '')) || 0))}
+        />
+      </div>
+    </label>
+  );
+}
+
+type SaleKind = 'game' | 'tebex';
+
+/** Satis turu (oyun parasi / gercek para) + fiyat veya Tebex komutu. */
+function SaleFields(p: {
+  kind: SaleKind;
+  setKind: (k: SaleKind) => void;
+  price: number;
+  setPrice: (v: number) => void;
+  designId?: string;
+  autoFocus?: boolean;
+}) {
+  const tebex = useStore((s) => s.config?.tebex);
+  const kind = tebex?.enabled ? p.kind : 'game';
+  const cmd = tebex && p.designId ? `${tebex.command} {transaction} ${p.designId}` : '';
+  return (
+    <>
+      {tebex?.enabled && (
+        <Seg<SaleKind>
+          value={kind}
+          onChange={p.setKind}
+          options={[
+            { id: 'game', label: T.modal.saleGame },
+            { id: 'tebex', label: T.modal.saleTebex },
+          ]}
+        />
+      )}
+      {kind === 'game' && <PriceInput value={p.price} onChange={p.setPrice} autoFocus={p.autoFocus} />}
+      {kind === 'tebex' && (
+        <div className="tebex-box">
+          <p>{T.modal.tebexText}</p>
+          <p className="warn">{T.modal.tebexRules}</p>
+          {cmd ? (
+            <label className="field">
+              <span>{T.modal.tebexCmd}</span>
+              <div className="cmd-row">
+                <code>{cmd}</code>
+                <button className="mini primary" onClick={() => copyText(cmd)}>
+                  {T.modal.copy}
+                </button>
+              </div>
+            </label>
+          ) : (
+            <p className="hint">{T.modal.tebexCmdAfter}</p>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 function PrintModal({ close }: { close: () => void }) {
   const project = useStore((s) => s.project);
   const vehicle = useStore((s) => s.vehicle);
   const cfg = useStore((s) => s.config);
   const [label, setLabel] = useState(project.name);
   const [preview, setPreview] = useState('');
+  const [publish, setPublish] = useState(true);
+  const [shopPrice, setShopPrice] = useState(cfg?.shopPrice ?? 0);
+  const [giveItem, setGiveItem] = useState(false);
+  const [kind, setKind] = useState<SaleKind>('game');
+  const tebex = publish && kind === 'tebex' && !!cfg?.tebex?.enabled;
   useEffect(() => {
     if (editor.doc) setPreview(editor.thumbnail(320));
   }, []);
@@ -180,10 +281,17 @@ function PrintModal({ close }: { close: () => void }) {
             <span>{T.modal.printName}</span>
             <input className="txt block" autoFocus maxLength={40} value={label} onChange={(e) => setLabel(e.target.value)} />
           </label>
-          <div className="price-row">
-            <span>{T.modal.price}</span>
-            <b>{price > 0 ? `${cfg?.currency ?? '$'}${price.toLocaleString('tr-TR')}` : T.modal.free}</b>
+          <div className="shop-opts">
+            <Toggle label={T.modal.publish} value={publish} onChange={setPublish} />
+            {publish && <SaleFields kind={kind} setKind={setKind} price={shopPrice} setPrice={setShopPrice} />}
+            {publish && <Toggle label={T.modal.giveItem} value={giveItem} onChange={setGiveItem} />}
           </div>
+          {price > 0 && (
+            <div className="price-row">
+              <span>{T.modal.price}</span>
+              <b>{money(price)}</b>
+            </div>
+          )}
         </div>
       </div>
       <div className="modal-f">
@@ -195,10 +303,40 @@ function PrintModal({ close }: { close: () => void }) {
           disabled={!label.trim()}
           onClick={() => {
             close();
-            void printLivery(label.trim().slice(0, 40));
+            void printLivery(label.trim().slice(0, 40), { publish, shopPrice, giveItem: publish ? giveItem : true, tebex });
           }}
         >
-          {T.footer.print}
+          {publish ? `${T.modal.publish} · ${tebex ? T.library.tebex : money(shopPrice)}` : T.footer.print}
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+function ListingModal(p: { id: string; label: string; price: number; published: boolean; tebex: boolean; close: () => void }) {
+  const [price, setPrice] = useState(p.price);
+  const [published, setPublished] = useState(p.published);
+  const [kind, setKind] = useState<SaleKind>(p.tebex ? 'tebex' : 'game');
+  const tebexOn = useStore((s) => !!s.config?.tebex?.enabled);
+  return (
+    <Shell icon="print" title={T.modal.listingTitle} sub={`${p.label} · #${p.id}`}>
+      <p>{T.modal.listingText}</p>
+      <div className="shop-opts">
+        <Toggle label={T.modal.publish} value={published} onChange={setPublished} />
+        <SaleFields kind={kind} setKind={setKind} price={price} setPrice={setPrice} designId={p.id} autoFocus />
+      </div>
+      <div className="modal-f">
+        <button className="btn ghost" onClick={p.close}>
+          {T.modal.cancel}
+        </button>
+        <button
+          className="btn primary"
+          onClick={() => {
+            p.close();
+            void setListing(p.id, price, published, tebexOn && kind === 'tebex');
+          }}
+        >
+          {T.modal.update}
         </button>
       </div>
     </Shell>

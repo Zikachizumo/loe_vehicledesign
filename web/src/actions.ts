@@ -119,7 +119,14 @@ export async function deleteProject(id: number) {
   }
 }
 
-export async function printLivery(label: string) {
+export interface PrintOptions {
+  publish: boolean;
+  shopPrice: number;
+  giveItem: boolean;
+  tebex?: boolean;
+}
+
+export async function printLivery(label: string, opts: PrintOptions = { publish: false, shopPrice: 0, giveItem: true }) {
   const s = S();
   if (!editor.doc || !s.vehicle || s.busy.print) return;
   if (s.vehicle.demo) {
@@ -141,6 +148,10 @@ export async function printLivery(label: string) {
       label,
       model: s.vehicle.model,
       paint: editor.doc.paint,
+      publish: opts.publish,
+      shopPrice: Math.max(0, Math.floor(opts.shopPrice) || 0),
+      giveItem: opts.giveItem,
+      tebex: opts.publish && !!opts.tebex,
     });
     if (res?.ok) {
       toast(res.message || T.toast.printed, 'ok');
@@ -158,6 +169,35 @@ export async function reprint(p: PrintedSummary) {
   const res = await fetchNui<OkRes>('reprint', { id: p.id });
   if (res?.ok) toast(res.message || T.toast.printed, 'ok');
   else toast(res?.error || T.toast.printFail, 'err');
+}
+
+/** Magaza fiyati / yayin durumu (sadece tasarim ekibi; sunucu da dogrular). */
+export async function setListing(id: string, price: number, published: boolean, tebex = false) {
+  const res = await fetchNui<OkRes>('setListing', { id, price: Math.max(0, Math.floor(price) || 0), published, tebex });
+  if (res?.ok) {
+    toast(res.message || T.toast.saved, 'ok');
+    set((s) => ({ printed: s.printed.map((p) => (p.id === id ? { ...p, price: tebex ? 0 : price, published, tebex } : p)) }));
+    void refreshLists();
+  } else toast(res?.error || T.toast.listingFail, 'err');
+}
+
+/** Panoya kopyala (NUI'de navigator.clipboard her zaman calismaz -> textarea yedegi). */
+export function copyText(text: string) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch {
+    ok = false;
+  }
+  ta.remove();
+  if (!ok) void navigator.clipboard?.writeText(text).catch(() => {});
+  toast(T.modal.copied, 'ok');
 }
 
 function readFile(file: File): Promise<string> {

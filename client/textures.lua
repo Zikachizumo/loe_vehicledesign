@@ -147,6 +147,7 @@ function Liveries.load(id, size)
 end
 
 local overrides = {} -- ['model:slot'] = true (canli onizleme slotu gecici olarak kullaniyor)
+local previewing = {} -- [veh] = true (magaza onizlemesi: bakim dongusu bu araca dokunmasin)
 
 --- Canli onizleme icin bir slotu gecici olarak baska dokuya yonlendir.
 function Liveries.override(model, slot, txd, tex)
@@ -167,6 +168,48 @@ function Liveries.restore(model, slot)
     RemoveReplaceTexture(slotNames(def, slot))
     overrides[key] = nil
     bound[key] = nil -- bakim dongusu gercek tasarimi varsa yeniden baglar
+end
+
+--- Magaza onizlemesi: tasarimi SADECE bu oyuncunun ekraninda, verilen aracta
+--- sure boyunca goster. Bitince araci eski haline dondurur.
+function Liveries.previewOn(veh, model, id, seconds, onDone)
+    local def = Config.Vehicles[model]
+    if not def or previewing[veh] then return false, 'Önizleme şu an kullanılamıyor' end
+    local t = Liveries.load(id, def.size or 1024)
+    local deadline = GetGameTimer() + 20000
+    while t.state == 'loading' and GetGameTimer() < deadline do Wait(100) end
+    if t.state ~= 'ready' or not DoesEntityExist(veh) then return false, 'Tasarım yüklenemedi' end
+    local slot = 1 -- sunucu gercek tasarimlari sondan dagitir
+    local orig = def.method == 'livery' and GetVehicleLivery(veh) or GetVehicleMod(veh, 48)
+    previewing[veh] = true
+    Liveries.override(model, slot, RT_TXD, t.texName)
+    Liveries.applyIndex(veh, def, slot)
+    CreateThread(function()
+        local stop = GetGameTimer() + seconds * 1000
+        while GetGameTimer() < stop and DoesEntityExist(veh) do
+            t.lastSeen = GetGameTimer()
+            Wait(250)
+        end
+        Liveries.restore(model, slot)
+        if DoesEntityExist(veh) then
+            if Entity(veh).state[STATE] then
+                -- gercek kaplamasi varsa bakim dongusu index'i geri koyar
+            elseif def.method == 'livery' then
+                SetVehicleLivery(veh, orig)
+            elseif orig == -1 then
+                RemoveVehicleMod(veh, 48)
+            else
+                SetVehicleMod(veh, 48, orig, false)
+            end
+        end
+        previewing[veh] = nil
+        if onDone then onDone() end
+    end)
+    return true
+end
+
+function Liveries.isPreviewing(veh)
+    return previewing[veh] == true
 end
 
 function Liveries.applyIndex(veh, def, slot)
@@ -265,7 +308,7 @@ CreateThread(function()
         local pos = GetEntityCoords(cache.ped)
         local maxDist = Config.Textures.streamDistance
         for _, veh in ipairs(GetGamePool('CVehicle')) do
-            if veh ~= (Preview and Preview.vehicle) and NetworkGetEntityIsNetworked(veh) then
+            if veh ~= (Preview and Preview.vehicle) and not previewing[veh] and NetworkGetEntityIsNetworked(veh) then
                 local st = Entity(veh).state[STATE]
                 if st and #(GetEntityCoords(veh) - pos) < maxDist then process(veh, st, now) end
             end

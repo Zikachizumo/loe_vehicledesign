@@ -174,13 +174,35 @@ function Designs() {
       <div className="dgrid">
         {printed.map((p) => (
           <div className="dcard" key={p.id}>
-            <div className="thumb">{p.thumb ? <img src={p.thumb} alt="" /> : <Icon name="print" size={30} />}</div>
+            <div className="thumb">
+              {p.thumb ? <img src={p.thumb} alt="" /> : <Icon name="print" size={30} />}
+              <i className={`sale ${p.published ? 'on' : ''} ${p.published && p.tebex ? 'tebex' : ''}`}>
+                {!p.published
+                  ? T.library.notOnSale
+                  : p.tebex
+                    ? `${T.library.onSale} · ${T.library.tebex}`
+                    : `${T.library.onSale} · ${cfg?.currency ?? '$'}${(p.price ?? 0).toLocaleString('tr-TR')}`}
+              </i>
+            </div>
             <b title={p.label}>{p.label}</b>
             <span>
               {label(p.model)} · #{p.id}
             </span>
+            <span title={p.designer ? `${T.library.by}: ${p.designer}` : undefined}>
+              {[p.designer, T.library.sales(p.sales ?? 0)].filter(Boolean).join(' · ')}
+            </span>
             <div className="row">
-              <button className="mini primary" onClick={() => void reprint(p)}>
+              <button
+                className="mini primary"
+                onClick={() =>
+                  set({
+                    modal: { type: 'listing', id: p.id, label: p.label, price: p.price ?? 0, published: !!p.published, tebex: !!p.tebex },
+                  })
+                }
+              >
+                {T.library.shop}
+              </button>
+              <button className="mini" onClick={() => void reprint(p)}>
                 {T.library.reprint}
               </button>
             </div>

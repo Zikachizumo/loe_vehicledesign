@@ -50,20 +50,18 @@ exports('IsStudioOpen', function() return isOpen end)
 RegisterNetEvent('loe_vd:client:openAnywhere', function() openStudio(0) end)
 
 -- ---------------- Noktalar ----------------
-local function jobOk(jobs)
-    if not jobs then return true end
-    local job = QBX and QBX.PlayerData and QBX.PlayerData.job
-    if not job then
-        local ok, pd = pcall(function() return exports.qbx_core:GetPlayerData() end)
-        job = ok and pd and pd.job or nil
-    end
-    if not job then return false end
-    local min = jobs[job.name]
-    local grade = type(job.grade) == 'table' and (job.grade.level or 0) or (tonumber(job.grade) or 0)
-    return min ~= nil and grade >= min
+-- Studyo noktalari sadece tasarim yetkililerine gorunur (sunucu da ayrica kontrol eder)
+local designer = false
+local function jobOk()
+    return designer
 end
 
 CreateThread(function()
+    if #Config.Studios == 0 then return end
+    Wait(3000)
+    local ok, res = pcall(lib.callback.await, 'loe_vd:server:isDesigner', false)
+    designer = ok and res == true
+    if not designer then return end
     for i, st in ipairs(Config.Studios) do
         if st.blip then
             local b = AddBlipForCoord(st.coords.x, st.coords.y, st.coords.z)
@@ -165,6 +163,7 @@ RegisterNUICallback('loadProject', function(d, cb) relayDownload('loe_vd:server:
 RegisterNUICallback('deleteProject', function(d, cb) cb(lib.callback.await('loe_vd:server:deleteProject', false, d) or { ok = false }) end)
 RegisterNUICallback('print', function(d, cb) relayUpload('loe_vd:server:print', d, cb) end)
 RegisterNUICallback('reprint', function(d, cb) cb(lib.callback.await('loe_vd:server:reprint', false, d) or { ok = false }) end)
+RegisterNUICallback('setListing', function(d, cb) cb(lib.callback.await('loe_vd:server:setListing', false, d) or { ok = false }) end)
 RegisterNUICallback('importUrl', function(d, cb) relayDownload('loe_vd:server:importUrl', d, cb) end)
 RegisterNUICallback('aiGenerate', function(d, cb) relayDownload('loe_vd:server:aiGenerate', d, cb, 180000) end)
 

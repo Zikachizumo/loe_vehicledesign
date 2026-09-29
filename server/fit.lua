@@ -77,36 +77,35 @@ local function resolveVehicle(src, netId, maxDist)
     if not near(src, veh, maxDist + 2.0) then return nil end
     return veh
 end
+Fit.resolveVehicle = resolveVehicle
 
-lib.callback.register('loe_vd:server:fit', function(src, slotId, netId)
-    local item = exports.ox_inventory:GetSlot(src, slotId)
-    if not item or item.name ~= Config.Items.livery then return { ok = false, message = 'Kaplama eşyası bulunamadı' } end
-    local meta = item.metadata or {}
-    local design = Designs.get(meta.designId)
-    if not design then return { ok = false, message = 'Bu kaplamanın tasarımı bulunamadı' } end
+--[[
+    Tasarimi araca tak (esya ile takma ve magazadan satin alma ortak cekirdegi).
+    Sira: dogrula -> opts.before() (esyayi sil / parayi cek) -> tak -> kaydet.
+    Takma olmazsa opts.rollback() (esyayi / parayi geri ver).
+    Donus: ok, mesaj, kaydedildi_mi
+]]
+function Fit.fitDesign(src, veh, design, opts)
+    opts = opts or {}
     local def = Config.Vehicles[design.model]
-    if not def then return { ok = false, message = 'Bu araç modeli artık desteklenmiyor' } end
-    local veh = resolveVehicle(src, netId, Config.Fit.distance)
-    if not veh then return { ok = false, message = 'Araç çok uzakta' } end
+    if not def then return false, 'Bu araç modeli artık desteklenmiyor' end
     if GetEntityModel(veh) ~= joaat(design.model) then
-        return { ok = false, message = ('Bu kaplama sadece %s için'):format(meta.vehicle or def.label) }
+        return false, ('Bu kaplama sadece %s için'):format(opts.vehicleLabel or def.label or design.model)
     end
     local plate = Bridge.trimPlate(GetVehicleNumberPlateText(veh))
     local owner = Bridge.vehicleOwner(plate)
-    local cid = Bridge.citizenId(src)
-    if Config.Fit.onlyOwnVehicles and owner ~= cid then
-        return { ok = false, message = 'Sadece kendi aracına kaplama takabilirsin' }
+    if opts.onlyOwn and owner ~= Bridge.citizenId(src) then
+        return false, 'Sadece kendi aracına kaplama takabilirsin'
     end
-    -- Esyayi ONCE sil (bekleme sirasinda baska yere tasinip kopyalanmasin); takma olmazsa geri ver.
-    if Config.Fit.consumeItem and not exports.ox_inventory:RemoveItem(src, item.name, 1, nil, slotId) then
-        return { ok = false, message = 'Kaplama eşyası bulunamadı' }
+    if opts.before then
+        local ok, err = opts.before()
+        if not ok then return false, err or 'İşlem yapılamadı' end
     end
     local slot = Fit.apply(veh, design)
     if not slot then
-        if Config.Fit.consumeItem then exports.ox_inventory:AddItem(src, item.name, 1, meta) end
-        return { ok = false, message = 'Bu model için boş kaplama slotu yok, daha sonra tekrar dene' }
+        if opts.rollback then opts.rollback() end
+        return false, 'Bu model için boş kaplama slotu yok, daha sonra tekrar dene'
     end
-
     local saved = false
     if Config.Fit.persistOwned and owner then
         MySQL.insert.await(
@@ -116,11 +115,33 @@ lib.callback.register('loe_vd:server:fit', function(src, slotId, netId)
         saved = true
     end
     Designs.log(src, ('**%s** #%s kaplamasını %s plakalı araca taktı'):format(Bridge.name(src), design.id, plate))
-    return {
-        ok = true,
-        saved = saved,
-        message = saved and 'Kaplama takıldı ve araca kalıcı olarak kaydedildi' or 'Kaplama araca takıldı (kayıtlı araç olmadığı için geçici)',
-    }
+    return true, saved and 'Kaplama takıldı ve araca kalıcı olarak kaydedildi' or 'Kaplama araca takıldı (kayıtlı araç olmadığı için geçici)', saved
+end
+
+lib.callback.register('loe_vd:server:fit', function(src, slotId, netId)
+    local item = exports.ox_inventory:GetSlot(src, slotId)
+    if not item or item.name ~= Config.Items.livery then return { ok = false, message = 'Kaplama eşyası bulunamadı' } end
+    local meta = item.metadata or {}
+    local design = Designs.get(meta.designId)
+    if not design then return { ok = false, message = 'Bu kaplamanın tasarımı bulunamadı' } end
+    local veh = resolveVehicle(src, netId, Config.Fit.distance)
+    if not veh then return { ok = false, message = 'Araç çok uzakta' } end
+    local consume = Config.Fit.consumeItem
+    local ok, msg, saved = Fit.fitDesign(src, veh, design, {
+        onlyOwn = Config.Fit.onlyOwnVehicles,
+        vehicleLabel = meta.vehicle,
+        -- Esyayi ONCE sil (bekleme sirasinda tasinip kopyalanmasin); takma olmazsa geri ver.
+        before = function()
+            if consume and not exports.ox_inventory:RemoveItem(src, item.name, 1, nil, slotId) then
+                return false, 'Kaplama eşyası bulunamadı'
+            end
+            return true
+        end,
+        rollback = function()
+            if consume then exports.ox_inventory:AddItem(src, item.name, 1, meta) end
+        end,
+    })
+    return { ok = ok, saved = saved, message = msg }
 end)
 
 --- Kaplamayi sok (sokucu item veya yetkili komut).
@@ -138,6 +159,23 @@ function Fit.remove(src, veh, checkOwner)
         MySQL.update.await('DELETE FROM loe_vd_vehicles WHERE plate = ?', { plate })
     end
     return true, 'Kaplama söküldü'
+end
+
+--- Iade edilen (Tebex) tasarimi o karakterin araclarindan kaldir. Kaldirilan arac sayisi.
+function Fit.revokeDesign(cid, designId)
+    local rows = MySQL.query.await('SELECT plate FROM loe_vd_vehicles WHERE design_id = ? AND citizenid = ?', { designId, cid }) or {}
+    if #rows == 0 then return 0 end
+    local plates = {}
+    for _, r in ipairs(rows) do
+        plates[r.plate] = true
+        persisted[r.plate] = nil
+    end
+    MySQL.update.await('DELETE FROM loe_vd_vehicles WHERE design_id = ? AND citizenid = ?', { designId, cid })
+    for _, veh in ipairs(GetAllVehicles()) do
+        local st = Entity(veh).state[STATE]
+        if st and st.d == designId and plates[Bridge.trimPlate(GetVehicleNumberPlateText(veh))] then Fit.clear(veh) end
+    end
+    return #rows
 end
 
 lib.callback.register('loe_vd:server:remove', function(src, slotId, netId)
