@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+      }
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <img id="t" alt="" />
+    <script>
+      // LoE kaplama dokusu: Lua SendDuiMessage ile gorseli parca parca gonderir.
+      var parts = [];
+      var total = 0;
+      var got = 0;
+      var img = document.getElementById('t');
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (typeof d === 'string') {
+          try {
+            d = JSON.parse(d);
+          } catch (err) {
+            return;
+          }
+        }
+        if (!d || d.loe !== true) return;
+        if (d.type === 'begin') {
+          parts = new Array(d.total);
+          total = d.total;
+          got = 0;
+        } else if (d.type === 'chunk') {
+          if (parts[d.i - 1] === undefined) {
+            parts[d.i - 1] = d.data;
+            got++;
+          }
+          if (got >= total && total > 0) {
+            img.src = parts.join('');
+            parts = [];
+            total = 0;
+          }
+        } else if (d.type === 'clear') {
+          img.removeAttribute('src');
+        }
+      });
+    </script>
+  </body>
+</html>

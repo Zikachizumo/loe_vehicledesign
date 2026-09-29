@@ -1,0 +1,37 @@
+# CHANGELOG
+
+## 1.1.1 — 2026-09-29 (hata düzeltmeleri)
+- **Güvenlik:** kaplama takarken eşya artık önce silinir; takma başarısız olursa geri verilir
+  (bekleme sırasında eşyayı taşıyarak çoğaltma açığı kapandı). Sökücü için de aynı.
+- Doku bir kez yüklenemezse artık 15 sn sonra tekrar denenir (önceden kaplama hiç görünmeyebiliyordu).
+- Canlı önizleme: ilk görüntü doku sayfası hazır olmadan gelirse tekrar gönderilir (boş araç sorunu);
+  önizleme slot 1'i kullanır (gerçek kaplamalarla çakışmaz).
+- **Bölünmüş görünüm (OYUNDA):** solda UV tuvalinde boya, sağda gerçek araçta anında gör;
+  kamera aracı sağ alana sığdırır.
+- Tarama düğmesi sunucu olayıyla çalışır (yetki sunucuda); tarama hatasında geçici araç silinir.
+- Stüdyo kapanınca, oyuncu hâlâ noktadaysa `[E]` yazısı geri gelir.
+- Plaka eşleşmesi boşluk/küçük harf farkından etkilenmez (`player_vehicles`).
+- Editör: kaydırıcı değişikliğinden hemen sonra Geri Al'da "İleri Al" kaybolmuyor; ölçeklenmiş
+  yazının metni değişince boyut korunuyor; büyük tasarımlar basılırken kalite otomatik düşürülüyor.
+- İstemci aktarımında sahipsiz veriler 5 dk sonra temizlenir.
+
+## 1.1.0 — 2026-09-29
+- **Tüm araçlar**: `/kaplamatarama` ile oyundaki tüm araçların otomatik taranması ve kataloğu
+  (ad/marka/sınıf/livery sayısı/doku adı tahmini) → `data/vehicles_auto.json`.
+- Kütüphane: GTA araç sınıflarına göre 22 kategori, "SADECE KAPLAMALI" filtresi, araç görselleri
+  (docs.fivem.net), kaplama desteklemeyen araçlar soluk + uyarı, yetkiliye tarama düğmesi.
+- **Oyunda canlı önizleme** (OYUNDA modu): gerçek araç, sürükle-döndür kamera, açı düğmeleri,
+  tasarım anlık doku olarak.
+- **UV ızgarası** yardımcısı (UV tuvali + canlı önizleme).
+- Basma ücreti 0 (varsayılan).
+- G menüsü vb. için istemci exportları: `OpenLiveryMenu`, `GetLiveriesForVehicle`, `FitLivery`,
+  `RemoveLivery`, `GetVehicleLivery` (`docs/G_MENUSU.md`).
+- Düzeltme: livery doku numarası artık `slot + indexOffset`; slot dağıtımı sondan başa.
+
+## 1.0.0 — 2026-09-29
+- İlk sürüm: referans videodaki işlev seti LoE için sıfırdan yazıldı (bkz. `VIDEO_ANALIZI.md`).
+- NUI: React/Vite/three.js editör, Türkçe arayüz, `empire` teması.
+- Lua (Qbox): stüdyo noktaları, oturumlu sunucu uçları, latent veri aktarımı, projeler,
+  basma/tekrar basma, takma/sökme, slot dağıtımı, plaka kalıcılığı, DUI dokuları,
+  URL içe aktarma vekili, yapay zekâ, Discord log, dışa açık API.
+- ox_inventory eşya tanımları ve ikonları (`install/`).
