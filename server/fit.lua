@@ -161,6 +161,23 @@ function Fit.remove(src, veh, checkOwner)
     return true, 'Kaplama söküldü'
 end
 
+--- Iade edilen (Tebex) tasarimi o karakterin araclarindan kaldir. Kaldirilan arac sayisi.
+function Fit.revokeDesign(cid, designId)
+    local rows = MySQL.query.await('SELECT plate FROM loe_vd_vehicles WHERE design_id = ? AND citizenid = ?', { designId, cid }) or {}
+    if #rows == 0 then return 0 end
+    local plates = {}
+    for _, r in ipairs(rows) do
+        plates[r.plate] = true
+        persisted[r.plate] = nil
+    end
+    MySQL.update.await('DELETE FROM loe_vd_vehicles WHERE design_id = ? AND citizenid = ?', { designId, cid })
+    for _, veh in ipairs(GetAllVehicles()) do
+        local st = Entity(veh).state[STATE]
+        if st and st.d == designId and plates[Bridge.trimPlate(GetVehicleNumberPlateText(veh))] then Fit.clear(veh) end
+    end
+    return #rows
+end
+
 lib.callback.register('loe_vd:server:remove', function(src, slotId, netId)
     local item = exports.ox_inventory:GetSlot(src, slotId)
     if not item or item.name ~= Config.Items.remover then return { ok = false, message = 'Sökücü bulunamadı' } end

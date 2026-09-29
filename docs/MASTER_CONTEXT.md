@@ -3,7 +3,7 @@
 > Projenin **tek teknik referansı**. Yeni bir sohbet/geliştirici bunu okuyunca kaldığı yerden
 > devam edebilmeli. Değişiklikler: [`CHANGELOG.md`](./CHANGELOG.md) · Plan: [`ROADMAP.md`](./ROADMAP.md)
 
-Son güncelleme: 2026-09-29 (v1.2)
+Son güncelleme: 2026-09-29 (v1.3)
 
 ## 1. Amaç
 Legends of Empire RP (Qbox) için oyun içi 3D kaplama editörü + **kaplama mağazası**.
@@ -45,7 +45,13 @@ sql/     install.sql
   `loe_vd:server:shopBuy(id, netId)`: hız sınırı → yayında mı → `'fit'`: `Fit.fitDesign`
   (`before` = para çek, `rollback` = iade) / `'item'`: para çek → `Designs.giveDesignItem` →
   `sales + 1`, log, `ServerConfig.OnPurchase`.
-- **Yayın**: bas isteğinde `publish/shopPrice/giveItem`; sonradan `loe_vd:server:setListing(id, price, published)`.
+- **Yayın**: bas isteğinde `publish/shopPrice/giveItem/tebex`; sonradan `loe_vd:server:setListing(id, price, published, tebex)`.
+- **Gerçek para** (`server/tebex.lua`, sadece Tebex — PLA): konsol komutu `loe_tebex_kaplama {transaction} KOD...`
+  → `loe_vd_purchases (tx, design_id, status=pending)`. Oyuncu `loe_vd:server:redeem` / `/kaplamakod` →
+  tek UPDATE ile `redeemed` + `citizenid` → `loe_vd_owned (citizenid, design_id)`. Sahip olunan tasarım
+  mağazada `Shop.fitOwned` ile ücretsiz, sadece kendi aracına takılır (eşya YOK → devredilemez).
+  `loe_tebex_iade {transaction}` → `revoked`, sahiplik silinir, `Fit.revokeDesign` araçlardan kaldırır.
+  Kurallar: `docs/GERCEK_PARA_TEBEX.md`.
 - **Büyük veri**: NUI→Lua `upload` (256KB parça) → Lua→sunucu `loe_vd:tx` (latent, 128KB) →
   `Transfer.take`. Ters yön: `Transfer.push` → `loe_vd:rx` → NUI `download` parçaları.
   Zarf biçimi: kaydet = `önizleme\nJSON`, bas = `önizleme\nikon\ngörsel`.

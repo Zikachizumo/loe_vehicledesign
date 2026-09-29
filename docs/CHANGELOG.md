@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 1.3.0 — 2026-09-29 (gerçek para — Tebex)
+- Tasarımlar **GERÇEK PARA (TEBEX)** olarak satılabilir (stüdyoda satış türü seçimi, Tebex paket
+  komutunu kopyalama).
+- Tebex konsol komutları: `loe_tebex_kaplama {transaction} KOD [KOD...]` (satın alma),
+  `loe_tebex_iade {transaction}` (iade/chargeback → sahiplik ve araçtaki kaplama geri alınır).
+  Oyuncular bu komutları çalıştıramaz.
+- Oyuncu kodu kullanır: mağazada **Tebex kodunu kullan** veya `/kaplamakod`. Kaplama **karaktere
+  bağlanır**: eşya verilmez, devredilemez; mağazada kendi araçlarına ücretsiz takılır. Satıştan
+  kaldırılsa da sahipler görmeye devam eder.
+- Mağaza: Tebex kaplamaları için mağaza bağlantısı (panoya kopyalanır), SAHİPSİN etiketi.
+- Veritabanı: `loe_vd_designs.tebex`, yeni `loe_vd_purchases` ve `loe_vd_owned` tabloları (otomatik).
+- Belge: `docs/GERCEK_PARA_TEBEX.md` (Cfx.re/Tebex kuralları + kurulum).
+
 ## 1.2.0 — 2026-09-29 (tasarım mağazası)
 - **Stüdyo sadece yetkililere açık** (`command.kaplamastudyo` izni; varsayılan `group.admin`).
   Tüm stüdyo istekleri sunucuda hem oturum hem yetki kontrol eder; stüdyo noktaları oyunculara

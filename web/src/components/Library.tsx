@@ -176,8 +176,12 @@ function Designs() {
           <div className="dcard" key={p.id}>
             <div className="thumb">
               {p.thumb ? <img src={p.thumb} alt="" /> : <Icon name="print" size={30} />}
-              <i className={`sale ${p.published ? 'on' : ''}`}>
-                {p.published ? `${T.library.onSale} · ${cfg?.currency ?? '$'}${(p.price ?? 0).toLocaleString('tr-TR')}` : T.library.notOnSale}
+              <i className={`sale ${p.published ? 'on' : ''} ${p.published && p.tebex ? 'tebex' : ''}`}>
+                {!p.published
+                  ? T.library.notOnSale
+                  : p.tebex
+                    ? `${T.library.onSale} · ${T.library.tebex}`
+                    : `${T.library.onSale} · ${cfg?.currency ?? '$'}${(p.price ?? 0).toLocaleString('tr-TR')}`}
               </i>
             </div>
             <b title={p.label}>{p.label}</b>
@@ -191,7 +195,9 @@ function Designs() {
               <button
                 className="mini primary"
                 onClick={() =>
-                  set({ modal: { type: 'listing', id: p.id, label: p.label, price: p.price ?? 0, published: !!p.published } })
+                  set({
+                    modal: { type: 'listing', id: p.id, label: p.label, price: p.price ?? 0, published: !!p.published, tebex: !!p.tebex },
+                  })
                 }
               >
                 {T.library.shop}

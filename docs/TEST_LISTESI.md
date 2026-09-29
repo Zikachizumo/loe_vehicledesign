@@ -23,4 +23,14 @@ F8 konsolunda ve sunucu konsolunda **kırmızı hata** var mı, her adımda bak.
 11. **Sök:** Kaplama Sökücü ile sök → kaplama gitti mi, eşya harcandı mı?
 12. **Kaydet/Aç:** Projeyi kaydet → stüdyoyu kapat/aç → Tasarımlarım → Aç → aynı tasarım geldi mi?
 
+**Tebex (gerçek para) — Tebex'e bağlamadan önce konsoldan denenebilir:**
+
+13. Stüdyoda bir tasarımı **GERÇEK PARA (TEBEX)** ile mağazaya ekle → kartta MAĞAZA → komutu kopyala.
+14. **txAdmin konsoluna** yaz: `loe_tebex_kaplama test-123456 KOD` (KOD = kartın üstündeki #kod)
+    → "1 kaplama kodu kullanima hazir" yazmalı.
+15. Oyuncu hesabıyla mağazada **Tebex kodunu kullan** → `test-123456` → "hesabına eklendi" mi?
+    Aynı kodu tekrar gir → "zaten kullanılmış" demeli.
+16. Aracı getir → kaplama **SAHİPSİN** görünüyor mu → **Aracıma tak (ücretsiz)** → para düşmeden takıldı mı?
+17. Konsola `loe_tebex_iade test-123456` yaz → kaplama araçtan kalktı mı, mağazada tekrar "Gerçek para" mı görünüyor?
+
 Sorun olursa: adım numarası + F8 / sunucu konsolundaki hata satırı + (varsa) ekran görüntüsü yeterli.

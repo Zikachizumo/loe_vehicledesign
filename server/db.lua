@@ -50,6 +50,29 @@ CreateThread(function()
     ensureColumn('loe_vd_designs', 'published', '`published` TINYINT(1) NOT NULL DEFAULT 0')
     ensureColumn('loe_vd_designs', 'price', '`price` INT UNSIGNED NOT NULL DEFAULT 0')
     ensureColumn('loe_vd_designs', 'sales', '`sales` INT UNSIGNED NOT NULL DEFAULT 0')
+    -- v1.3: gercek para (Tebex)
+    ensureColumn('loe_vd_designs', 'tebex', '`tebex` TINYINT(1) NOT NULL DEFAULT 0')
+    MySQL.query.await([[
+        CREATE TABLE IF NOT EXISTS `loe_vd_purchases` (
+            `tx` VARCHAR(64) NOT NULL,
+            `design_id` VARCHAR(12) NOT NULL,
+            `status` VARCHAR(12) NOT NULL DEFAULT 'pending',
+            `citizenid` VARCHAR(64) NULL,
+            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `redeemed_at` TIMESTAMP NULL DEFAULT NULL,
+            PRIMARY KEY (`tx`, `design_id`),
+            INDEX `idx_citizen` (`citizenid`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ]])
+    MySQL.query.await([[
+        CREATE TABLE IF NOT EXISTS `loe_vd_owned` (
+            `citizenid` VARCHAR(64) NOT NULL,
+            `design_id` VARCHAR(12) NOT NULL,
+            `tx` VARCHAR(64) NOT NULL,
+            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`citizenid`, `design_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ]])
     DB.ready = true
     TriggerEvent('loe_vd:server:dbReady')
 end)

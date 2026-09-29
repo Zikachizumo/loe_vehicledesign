@@ -6,7 +6,7 @@ use_experimental_fxv2_oal 'yes'
 name 'loe_vehicledesign'
 author 'Legends of Empire RP'
 description 'LoE Arac Tasarim Studyosu - oyun ici 3D kaplama (livery) editoru'
-version '1.2.0'
+version '1.3.0'
 repository 'https://github.com/Zikachizumo/loe_vehicledesign'
 
 dependencies {
@@ -45,6 +45,7 @@ server_scripts {
     'server/designs.lua',
     'server/fit.lua',
     'server/shop.lua',
+    'server/tebex.lua',
     'server/remote.lua',
     'server/main.lua',
 }

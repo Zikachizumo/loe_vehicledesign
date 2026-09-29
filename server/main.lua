@@ -49,6 +49,7 @@ local function openPayload(src)
         price = Config.Print.price or 0,
         currency = Config.Print.currency or '$',
         shopPrice = Config.Shop and Config.Shop.defaultPrice or 0,
+        tebex = Config.Tebex.enabled and { enabled = true, command = ServerConfig.Tebex.grantCommand } or nil,
         aiEnabled = Remote.aiEnabled(src),
         fonts = Config.Fonts,
         limits = {
@@ -124,7 +125,7 @@ guarded('loe_vd:server:loadProject', function(src, cid, d) return Designs.loadPr
 guarded('loe_vd:server:deleteProject', function(_, cid, d) return Designs.deleteProject(cid, d.id) end)
 guarded('loe_vd:server:print', function(src, cid, d) return Designs.print(src, cid, d) end)
 guarded('loe_vd:server:reprint', function(src, cid, d) return Designs.reprint(src, cid, d.id) end)
-guarded('loe_vd:server:setListing', function(src, _, d) return Designs.setListing(src, d.id, d.price, d.published == true) end)
+guarded('loe_vd:server:setListing', function(src, _, d) return Designs.setListing(src, d.id, d.price, d.published == true, d.tebex == true) end)
 guarded('loe_vd:server:importUrl', function(src, _, d) return Remote.importUrl(src, d.url) end)
 guarded('loe_vd:server:aiGenerate', function(src, _, d) return Remote.aiGenerate(src, d.prompt, d.model) end)
 

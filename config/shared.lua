@@ -88,6 +88,16 @@ Config.Shop = {
     defaultPrice = 25000, -- studyoda "Magazada sat" acilinca onerilen fiyat
 }
 
+-- GERCEK PARA SATISI — Cfx.re kurallari geregi SADECE Tebex ile (bkz. docs/GERCEK_PARA_TEBEX.md).
+-- Studyoda bir tasarim "GERCEK PARA (TEBEX)" olarak isaretlenir; oyuncu Tebex'ten alir,
+-- e-postadaki islem kodunu oyunda girer, kaplama KARAKTERINE baglanir (devredilemez)
+-- ve magazada kendi aracina ucretsiz takar.
+Config.Tebex = {
+    enabled = true,
+    storeUrl = '', -- ornek: 'https://legendsofempire.tebex.io' (magazada oyuncuya gosterilir)
+    redeemCommand = 'kaplamakod', -- oyuncu: /kaplamakod tbx-xxxx  (magaza menusunden de girilir)
+}
+
 -- true: ox_target kuresi; false: [E] metin arayuzu (lib.points)
 Config.UseTarget = false
 

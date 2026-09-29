@@ -26,6 +26,17 @@ end
 local lastBuy = {}
 AddEventHandler('playerDropped', function() lastBuy[source] = nil end)
 
+--- Tebex ile sahip olunan tasarimi kendi aracina ucretsiz tak (esya verilmez: devredilemez).
+function Shop.fitOwned(src, row, netId)
+    local veh = Fit.resolveVehicle(src, netId, Config.Shop.maxVehicleDistance)
+    if not veh then return { ok = false, message = 'Aracını mağazaya getir' } end
+    local design = Designs.get(row.id)
+    if not design then return { ok = false, message = 'Tasarım bulunamadı' } end
+    local ok, msg, saved = Fit.fitDesign(src, veh, design, { onlyOwn = true })
+    if ok then msg = ('"%s" takıldı%s'):format(row.label, saved and ' ve aracına kaydedildi' or '') end
+    return { ok = ok, message = msg }
+end
+
 --- Magaza listesi: oyuncunun getirdigi araca uyan yayindaki tasarimlar.
 lib.callback.register('loe_vd:server:shopList', function(src, netId)
     if not nearShop(src) then return { ok = false, error = 'Kaplama mağazasında değilsin' } end
@@ -33,18 +44,32 @@ lib.callback.register('loe_vd:server:shopList', function(src, netId)
     if not veh then return { ok = false, error = 'Aracını mağazaya getir' } end
     local model = modelOf(veh)
     if not model then return { ok = false, error = 'Bu araç kaplama desteklemiyor' } end
-    local rows = MySQL.query.await(
-        'SELECT id, label, price, thumb, designer, sales FROM loe_vd_designs WHERE published = 1 AND model = ? ORDER BY sales DESC, created_at DESC LIMIT 60',
-        { model }) or {}
+    local cid = Bridge.citizenId(src)
+    -- satistakiler + (satistan kalksa bile) Tebex ile sahip olunanlar
+    local rows = MySQL.query.await([[
+        SELECT d.id, d.label, d.price, d.thumb, d.designer, d.sales, d.tebex, o.design_id IS NOT NULL AS owned
+        FROM loe_vd_designs d
+        LEFT JOIN loe_vd_owned o ON o.design_id = d.id AND o.citizenid = ?
+        WHERE d.model = ? AND (d.published = 1 OR o.design_id IS NOT NULL)
+        ORDER BY owned DESC, d.sales DESC, d.created_at DESC LIMIT 60
+    ]], { cid or '', model }) or {}
+    local list = {}
+    for _, r in ipairs(rows) do
+        r.tebex = r.tebex == true or r.tebex == 1
+        r.owned = r.owned == true or r.owned == 1
+        if r.owned or not r.tebex or Config.Tebex.enabled then list[#list + 1] = r end
+    end
     local st = Entity(veh).state.loe_livery
     return {
         ok = true,
         model = model,
         vehicle = Designs.vehicleLabel(model),
         current = st and st.d or nil,
-        count = #rows,
+        count = #list,
         currency = Config.Print.currency,
-        transfer = Transfer.push(src, json.encode(rows)),
+        tebex = Config.Tebex.enabled,
+        storeUrl = Config.Tebex.storeUrl ~= '' and Config.Tebex.storeUrl or nil,
+        transfer = Transfer.push(src, json.encode(list)),
     }
 end)
 
@@ -55,8 +80,15 @@ lib.callback.register('loe_vd:server:shopBuy', function(src, id, netId)
     lastBuy[src] = now
     if not nearShop(src) then return { ok = false, message = 'Kaplama mağazasında değilsin' } end
     if type(id) ~= 'string' or #id > 12 then return { ok = false, message = 'Geçersiz tasarım' } end
-    local row = MySQL.single.await('SELECT id, model, label, price, published, designer, thumb FROM loe_vd_designs WHERE id = ?', { id })
-    if not row or not (row.published == true or row.published == 1) then return { ok = false, message = 'Bu kaplama artık satışta değil' } end
+    local row = MySQL.single.await('SELECT id, model, label, price, published, designer, thumb, tebex FROM loe_vd_designs WHERE id = ?', { id })
+    if not row then return { ok = false, message = 'Bu kaplama artık satışta değil' } end
+    local cid = Bridge.citizenId(src)
+    local owned = Tebex.owns(cid, id)
+    if not owned and not (row.published == true or row.published == 1) then return { ok = false, message = 'Bu kaplama artık satışta değil' } end
+    if owned then return Shop.fitOwned(src, row, netId) end
+    if row.tebex == true or row.tebex == 1 then
+        return { ok = false, message = 'Bu kaplama gerçek para ile satılır: Tebex mağazasından al, e-postadaki kodu gir.' }
+    end
     local price = Designs.clampPrice(row.price)
     local accounts = Config.Shop.accounts
     local charged = false

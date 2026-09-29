@@ -24,17 +24,52 @@ end
 local openShop
 
 local function buy(veh, d, info)
-    local alert = lib.alertDialog({
-        header = 'Kaplamayı satın al',
+    local content
+    if d.owned then
+        content = ('**%s**  \n%s için  \nBu kaplamaya **sahipsin** — ücretsiz takılacak.'):format(d.label, info.vehicle)
+    else
         content = ('**%s**  \n%s için  \nFiyat: **%s**%s'):format(d.label, info.vehicle, money(d.price, info.currency),
-            Config.Shop.mode == 'item' and '  \nKaplama envanterine eklenecek.' or '  \nKaplama aracına hemen takılacak.'),
+            Config.Shop.mode == 'item' and '  \nKaplama envanterine eklenecek.' or '  \nKaplama aracına hemen takılacak.')
+    end
+    local alert = lib.alertDialog({
+        header = d.owned and 'Kaplamayı tak' or 'Kaplamayı satın al',
+        content = content,
         centered = true,
         cancel = true,
-        labels = { confirm = 'Satın al', cancel = 'Vazgeç' },
+        labels = { confirm = d.owned and 'Tak' or 'Satın al', cancel = 'Vazgeç' },
     })
     if alert ~= 'confirm' then return openShop() end
     local res = lib.callback.await('loe_vd:server:shopBuy', false, d.id, VehToNet(veh))
     notify(res and res.message or 'Satın alınamadı', res and res.ok and 'success' or 'error')
+end
+
+--- Tebex islem kodunu kullan (kaplama karaktere baglanir).
+local function redeem()
+    local input = lib.inputDialog('Tebex kodunu kullan', {
+        { type = 'input', label = 'İşlem kodu', description = 'Tebex e-postasındaki kod (tbx-...)', required = true, min = 6, max = 64 },
+    })
+    if not input or not input[1] then return openShop() end
+    local res = lib.callback.await('loe_vd:server:redeem', false, input[1])
+    notify(res and res.message or 'Kod kullanılamadı', res and res.ok and 'success' or 'error')
+    if res and res.ok then openShop() end
+end
+
+--- Gercek para ile satilan kaplama: magaza sitesini goster (baglanti panoya kopyalanir).
+local function tebexInfo(d, info)
+    if info.storeUrl then lib.setClipboard(info.storeUrl) end
+    local alert = lib.alertDialog({
+        header = 'Gerçek para ile satın al',
+        content = ('**%s** kaplaması sunucu mağazamızdan (Tebex) satın alınır.  \n\n%s  \n\n'
+            .. 'Ödemeden sonra e-postana gelen **işlem kodunu** burada "Tebex kodunu kullan" ile gir: '
+            .. 'kaplama karakterine bağlanır, kendi araçlarına ücretsiz takarsın.  \n'
+            .. 'Sadece görünüm (kozmetik) — oyunda avantaj sağlamaz, devredilemez.'):format(
+            d.label, info.storeUrl and ('Mağaza: **%s** (bağlantı panoya kopyalandı)'):format(info.storeUrl) or 'Mağaza bağlantısını yetkililerden iste.'),
+        centered = true,
+        cancel = true,
+        labels = { confirm = 'Kodum var', cancel = 'Geri' },
+    })
+    if alert == 'confirm' then return redeem() end
+    openShop()
 end
 
 local function preview(veh, d, info)
@@ -61,11 +96,30 @@ openShop = function()
     list = ok and type(list) == 'table' and list or {}
 
     local options = {}
+    if res.tebex then
+        options[1] = {
+            title = 'Tebex kodunu kullan',
+            description = 'Gerçek para ile aldığın kaplamanın işlem kodunu gir',
+            icon = 'ticket',
+            onSelect = redeem,
+        }
+    end
+    local listed = 0
     for _, d in ipairs(list) do
+        listed = listed + 1
+        local priceText = d.owned and 'SAHİPSİN — ücretsiz tak' or d.tebex and 'Gerçek para (Tebex)' or money(d.price, res.currency)
+        local action
+        if d.owned then
+            action = { title = 'Aracıma tak (ücretsiz)', icon = 'check', onSelect = function() buy(veh, d, res) end }
+        elseif d.tebex then
+            action = { title = 'Satın al (gerçek para — Tebex)', icon = 'gem', onSelect = function() tebexInfo(d, res) end }
+        else
+            action = { title = ('Satın al — %s'):format(money(d.price, res.currency)), icon = 'cart-shopping', onSelect = function() buy(veh, d, res) end }
+        end
         options[#options + 1] = {
             title = d.label,
-            description = ('%s  ·  Tasarımcı: %s%s'):format(money(d.price, res.currency), d.designer or '?', d.id == res.current and '  ·  TAKILI' or ''),
-            icon = 'paint-roller',
+            description = ('%s  ·  Tasarımcı: %s%s'):format(priceText, d.designer or '?', d.id == res.current and '  ·  TAKILI' or ''),
+            icon = d.owned and 'circle-check' or d.tebex and 'gem' or 'paint-roller',
             image = d.thumb,
             arrow = true,
             onSelect = function()
@@ -75,15 +129,15 @@ openShop = function()
                     menu = 'loe_vd_shop',
                     options = {
                         { title = ('Önizle (%d sn)'):format(Config.Shop.previewSeconds), icon = 'eye', image = d.thumb, onSelect = function() preview(veh, d, res) end },
-                        { title = ('Satın al — %s'):format(money(d.price, res.currency)), icon = 'cart-shopping', onSelect = function() buy(veh, d, res) end },
+                        action,
                     },
                 })
                 lib.showContext('loe_vd_shop_item')
             end,
         }
     end
-    if #options == 0 then
-        options[1] = { title = 'Bu araç için satışta kaplama yok', description = res.vehicle, icon = 'circle-info', disabled = true }
+    if listed == 0 then
+        options[#options + 1] = { title = 'Bu araç için satışta kaplama yok', description = res.vehicle, icon = 'circle-info', disabled = true }
     end
     lib.registerContext({ id = 'loe_vd_shop', title = ('Kaplama Mağazası · %s'):format(res.vehicle), options = options })
     lib.showContext('loe_vd_shop')

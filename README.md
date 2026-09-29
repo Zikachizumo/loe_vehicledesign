@@ -29,6 +29,9 @@ erişemez**: aracını Benny's'teki **Kaplama Mağazası**'na getirir, araca uya
 - **Kaplama Mağazası** (oyuncular): araca uyan satıştaki kaplamalar, 15 sn **önizleme** (sadece
   alıcı görür), onaylı satın alma (banka → nakit). Başarısız takmada para **iade** edilir.
   `mode = 'fit'` (hemen takılır) veya `'item'` (envantere eşya verilir).
+- **Gerçek para satışı (Tebex)**: tasarım "GERÇEK PARA (TEBEX)" olarak işaretlenir; oyuncu Tebex'ten
+  alır, e-postadaki kodu oyunda girer, kaplama karakterine bağlanır (devredilemez) ve ücretsiz takılır.
+  İade/chargeback otomatik geri alır. Kurallar ve kurulum: [`docs/GERCEK_PARA_TEBEX.md`](docs/GERCEK_PARA_TEBEX.md)
 - **Oyunda**: tasarım DUI → runtime texture → `AddReplaceTexture` ile modelin livery slotuna
   basılır; sunucu slotları global dağıtır, böylece aynı modelde aynı anda farklı tasarımlar görünür.
 - Kalıcılık: `player_vehicles`'ta kayıtlı araçlarda plaka bazlı; garajdan çıkınca otomatik geri gelir.
@@ -75,6 +78,8 @@ erişemez**: aracını Benny's'teki **Kaplama Mağazası**'na getirir, araca uya
   `add_ace identifier.fivem:123456 command.kaplamastudyo allow`
 - **Oyuncu:** aracını haritadaki **LoE Kaplama Mağazası**'na (Benny's) getir → `[E]` → kaplama seç →
   Önizle / Satın al. (İçindeyken veya yanında durarak.)
+- **Gerçek para:** Tebex kurulumu, kurallar (sadece Tebex, marka/logo yok, coin yok) →
+  [`docs/GERCEK_PARA_TEBEX.md`](docs/GERCEK_PARA_TEBEX.md). Oyuncu kodu: `/kaplamakod tbx-...`
 - Diğer yetkili komutları: `/kaplamasok` (en yakın araçtaki kaplamayı kaldırır), `/kaplamatarama`
   (tüm araçları tarar).
 - **Kaplama Sökücü** eşyası ile kaplama sökülür; `'item'` modunda satılan **Araç Kaplaması** eşyası
